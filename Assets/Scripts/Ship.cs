@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Ship : ShipsDispatcher
+public class Ship : MonoBehaviour
 {
     public enum Orientation
     {
@@ -20,19 +20,19 @@ public class Ship : ShipsDispatcher
     public GameObject floorButtonPref;
     public bool isWithinCell = false, isPositionCorrect = false;
     public Vector3 cellCenterPosition;
-    public int cellIndexX, cellIndexY;
 
     ShipsDispatcher dispatcher;
     Vector3 finalPos;
     Camera cam;
     Animator[] animators;
-    bool toMove = false, isAllocated = false, isCollided = false;
+    bool toMove = false, isWorkingCopy = false, isCollided = false, wasLocatedOnce = false;
     int floorsNum;
 
     // Start is called before the first frame update
     void Start()
     {        
         dispatcher = GetComponentInChildren<ShipsDispatcher>();
+        isWorkingCopy = gameObject.name.Contains("(Clone)");
         cam = Camera.main;
         floorsNum = transform.childCount;
         animators = new Animator[floorsNum];
@@ -55,10 +55,10 @@ public class Ship : ShipsDispatcher
             buttonScript.onClick.AddListener(OnFloorClick); // making button clickable
         }
 
-        var boxCollider = gameObject.AddComponent<BoxCollider2D>();
-        boxCollider.isTrigger = true;
-        boxCollider.size = new Vector2((floorsNum + 0.5f) * floorSize, floorSize * 1.5f);
-        boxCollider.offset = new Vector2(floorsNum * floorSize / 2 - floorSize / 2, 0);
+        //var boxCollider = gameObject.AddComponent<BoxCollider2D>();
+        //boxCollider.isTrigger = true;
+        //boxCollider.size = new Vector2((floorsNum + 0.5f) * floorSize, floorSize * 1.5f);
+        //boxCollider.offset = new Vector2(floorsNum * floorSize / 2 - floorSize / 2, 0);
     }
 
     void OnTriggerEnter2D(Collider2D collider2D)
@@ -82,33 +82,33 @@ public class Ship : ShipsDispatcher
         GameField.CheckLocationOverField(mousePos, this);        
         mousePos.z = transform.position.z;
         transform.position = mousePos;
-
-        if (isWithinCell)
-        {
-            transform.position = cellCenterPosition;
-        }
-        SwitchPlacementAnimation();
+        if (isWithinCell) transform.position = cellCenterPosition;
 
         if (Input.GetKeyUp(KeyCode.Escape))
         {
-            ShipsDispatcher.currentShip = null;
-            if (isAllocated) transform.position = finalPos;
+            if (wasLocatedOnce)
+            {
+                transform.position = finalPos;
+                isPositionCorrect = true;
+            }
             else Destroy(gameObject);
+            ShipsDispatcher.currentShip = null;
         }
         else if (Input.GetKeyUp(KeyCode.Space)) Rotate();
+        SwitchPlacementAnimation();
     }
 
     void OnFloorClick()
     {
-        dispatcher.OnShipClick();
-        if (!Input.GetMouseButtonDown(0)) return;
-        else if (isAllocated) GameField.TakeShipOff(this);
+        if (!Input.GetMouseButtonUp(0)) return;
         else if (toMove && isPositionCorrect)
         {
             finalPos = transform.position;
-            isAllocated = true;
             GameField.MarkShipCellsAsOccupied(this);
         }
+        else if (wasLocatedOnce && isWorkingCopy) GameField.TakeShipOff(this);
+        dispatcher.OnShipClick();
+        if (!wasLocatedOnce) wasLocatedOnce = true;
     }
 
     void Rotate()
@@ -134,9 +134,9 @@ public class Ship : ShipsDispatcher
         return isCollided;
     }
 
-    public bool IsAllocated()
+    public bool WasLocatedOnce()
     {
-        return isAllocated;
+        return wasLocatedOnce;
     }
 
     void SwitchPlacementAnimation()

@@ -7,6 +7,7 @@ public class ShipsDispatcher : MonoBehaviour
 {
     static Dictionary<string, int> shipsLeftToAllocate = new Dictionary<string, int>();
     static Dictionary<string, Text> shipsLabels = new Dictionary<string, Text>();
+    static List<GameObject> allShips = new List<GameObject>();
 
     public GameObject shipPrefab;
     public static Ship currentShip;
@@ -16,13 +17,33 @@ public class ShipsDispatcher : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        FillLabelsDict();
+        FillLabelsDict();        
+        if (gameObject.name.Contains("(Clone)")) allShips.Add(gameObject);
+        else GameField.OnAutoLocate += OnAutoLocateClick;
         dictKey = gameObject.name.Replace("(Clone)", null);
+
         var shipsToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
         if (!shipsLeftToAllocate.ContainsKey(gameObject.name))
         {
             shipsLeftToAllocate.Add(gameObject.name, shipsToAllocate);
             RefreshLabel();
+        }
+    }
+
+    void OnDestroy()
+    {
+        allShips.Remove(gameObject);
+    }
+
+    void OnAutoLocateClick()
+    {
+        while (shipsLeftToAllocate[dictKey] > 0)
+        {
+            Instantiate(shipPrefab, transform.parent.transform);
+            lock (shipsLeftToAllocate)
+            {
+                shipsLeftToAllocate[dictKey]--;
+            }            
         }
     }
 
@@ -44,7 +65,7 @@ public class ShipsDispatcher : MonoBehaviour
             if (currentShip == null) currentShip = GetComponentInChildren<Ship>();
             else if (currentShip.isPositionCorrect)
             {
-                if (!currentShip.IsAllocated()) shipsLeftToAllocate[dictKey]--;   
+                if (!currentShip.WasLocatedOnce()) shipsLeftToAllocate[dictKey]--;   
                 RefreshLabel();   
                 currentShip = null;          
             }
