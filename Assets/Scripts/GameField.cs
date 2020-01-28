@@ -119,7 +119,7 @@ public class GameField : MonoBehaviour
     {
         SetCellsStateUnderneathShip(ship, CellState.Occupied);        
         //Debug.Log("SET");
-        Debug.Log(GetCellMatrixPos(ship.cellCenterPosition));
+        //Debug.Log(GetCellMatrixPos(ship.cellCenterPosition));
     }
 
     public static void TakeShipOff(Ship ship)
@@ -164,5 +164,65 @@ public class GameField : MonoBehaviour
     public void OnAutoLocateClick()
     {
         OnAutoLocate?.Invoke();
+        ClearGameField();
+
+        Debug.Log(ShipsDispatcher.GetAllShips().Length);
+        foreach (var ship in ShipsDispatcher.GetAllShips())
+        {
+            AutoLocateShip(ship);
+        }
+    }
+
+    void ClearGameField()
+    {
+        for (int i = 0; i < Width(); i++)
+        {
+            for (int j = 0; j < Height(); j++)
+            {
+                body[i, j] = (int)CellState.Empty;
+            }
+        }
+    }
+
+    void AutoLocateShip(Ship ship)
+    {
+        int fieldSqr = body.Length, initPointIndex = 0;
+        var step = Random.Range(fieldSqr / 4, fieldSqr / 3);
+        int pointIndex = Random.Range(0, fieldSqr), x, y;
+
+        int c = 0;
+        while (true)
+        {
+            x = pointIndex / Width();
+            y = pointIndex % Height();
+
+            Debug.Log(x + " :: " + y);
+            while (!Input.GetKeyUp(KeyCode.Space))
+            {
+            }
+
+            if (IsLocationAppropriate(ship, x, y)) break;
+            ship.Rotate();
+            if (IsLocationAppropriate(ship, x, y)) break;
+
+            pointIndex += step;
+            initPointIndex += step;
+            if (pointIndex >= fieldSqr) pointIndex -= fieldSqr;
+            if (initPointIndex >= fieldSqr)
+            {
+                initPointIndex -= fieldSqr;
+                step--;
+            }
+
+
+            c++;
+            if (c > 1000)
+            {
+                Debug.Log("OVERLOOPED");
+                break;
+            }
+        }
+        ship.gameObject.transform.position = boundsOfCells[x, y].center;
+        MarkShipCellsAsOccupied(ship);
     }
 }

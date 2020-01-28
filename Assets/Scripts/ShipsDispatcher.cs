@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ShipsDispatcher : MonoBehaviour
+public class ShipsDispatcher : Ship
 {
     static Dictionary<string, int> shipsLeftToAllocate = new Dictionary<string, int>();
     static Dictionary<string, Text> shipsLabels = new Dictionary<string, Text>();
-    static List<GameObject> allShips = new List<GameObject>();
+    static List<ShipsDispatcher> allShips = new List<ShipsDispatcher>();
 
     public GameObject shipPrefab;
     public static Ship currentShip;
@@ -18,7 +18,7 @@ public class ShipsDispatcher : MonoBehaviour
     void Start()
     {
         FillLabelsDict();        
-        if (gameObject.name.Contains("(Clone)")) allShips.Add(gameObject);
+        if (gameObject.name.Contains("(Clone)")) allShips.Add(this);
         else GameField.OnAutoLocate += OnAutoLocateClick;
         dictKey = gameObject.name.Replace("(Clone)", null);
 
@@ -32,7 +32,7 @@ public class ShipsDispatcher : MonoBehaviour
 
     void OnDestroy()
     {
-        allShips.Remove(gameObject);
+        allShips.Remove(this);
     }
 
     void OnAutoLocateClick()
@@ -40,10 +40,7 @@ public class ShipsDispatcher : MonoBehaviour
         while (shipsLeftToAllocate[dictKey] > 0)
         {
             Instantiate(shipPrefab, transform.parent.transform);
-            lock (shipsLeftToAllocate)
-            {
-                shipsLeftToAllocate[dictKey]--;
-            }            
+            shipsLeftToAllocate[dictKey]--;
         }
     }
 
@@ -83,5 +80,12 @@ public class ShipsDispatcher : MonoBehaviour
     void RefreshLabel()
     {
         shipsLabels[dictKey].text = shipsLeftToAllocate[dictKey] + "x";
+    }
+
+    public static ShipsDispatcher[] GetAllShips()
+    {
+        var result = new ShipsDispatcher[allShips.Count];
+        allShips.CopyTo(result);
+        return result;
     }
 }

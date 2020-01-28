@@ -111,7 +111,7 @@ public class Ship : MonoBehaviour
         if (!wasLocatedOnce) wasLocatedOnce = true;
     }
 
-    void Rotate()
+    public void Rotate()
     {
         var angleStr = rotateBy.ToString().Replace("Deg", null);
         var angleFloat = float.Parse(angleStr);
