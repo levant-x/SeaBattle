@@ -14,7 +14,6 @@ public class GameField : MonoBehaviour
     public GameObject cellPrefab;
     public float bottomLeftX, bottomLeftY;
     public bool toAdjustOrigin = false;
-    public static event System.Action OnAutoLocate;
 
     static int[,] body = new int[10, 8];
     static Bounds[,] boundsOfCells;
@@ -163,15 +162,41 @@ public class GameField : MonoBehaviour
 
     public void OnAutoLocateClick()
     {
-        OnAutoLocate?.Invoke();
+        var templateShips = ShipsDispatcher.GetAllShips(true);
+        foreach (var tplShip in templateShips)
+        {
+            tplShip.GenerateAllAmount();
+        }
+        var playShips = ShipsDispatcher.GetAllShips(false);
+        Debug.Log(playShips.Length);
         ClearGameField();
 
-        Debug.Log(ShipsDispatcher.GetAllShips().Length);
-        foreach (var ship in ShipsDispatcher.GetAllShips())
+
+        Debug.Log("Field clear");
+
+        StartCoroutine(WaitForAllShips(playShips));
+
+        //foreach (var ship in playShips)
+        //{
+        //    AutoLocateShip(ship);
+        //}
+    }
+
+    IEnumerator WaitForAllShips(ShipsDispatcher[] ships)
+    {
+        foreach (var ship in ships)
         {
             AutoLocateShip(ship);
+
+
+            while (!Input.GetKeyDown(KeyCode.Space))
+            {
+                yield return new WaitForSeconds(waitTime);
+            }
         }
     }
+
+    public float waitTime = 1;
 
     void ClearGameField()
     {
@@ -188,40 +213,49 @@ public class GameField : MonoBehaviour
     {
         int fieldSqr = body.Length, initPointIndex = 0;
         var step = Random.Range(fieldSqr / 4, fieldSqr / 3);
-        int pointIndex = Random.Range(0, fieldSqr), x, y;
+        int point = Random.Range(0, fieldSqr), x, y;
+
+        Debug.Log(ship.name +  " at point " + point);
 
         int c = 0;
         while (true)
         {
-            x = pointIndex / Width();
-            y = pointIndex % Height();
+            x = point % Width();
+            y = point / Width();
 
             Debug.Log(x + " :: " + y);
-            while (!Input.GetKeyUp(KeyCode.Space))
-            {
-            }
+            //while (!Input.GetKeyUp(KeyCode.Space))
+            //{
+            //}
 
             if (IsLocationAppropriate(ship, x, y)) break;
+            Debug.Log("Rotating ");
+
             ship.Rotate();
             if (IsLocationAppropriate(ship, x, y)) break;
+            Debug.Log("Moving across");
 
-            pointIndex += step;
+            point += step;
             initPointIndex += step;
-            if (pointIndex >= fieldSqr) pointIndex -= fieldSqr;
+            if (point >= fieldSqr) point -= fieldSqr;
             if (initPointIndex >= fieldSqr)
             {
                 initPointIndex -= fieldSqr;
                 step--;
             }
+            Debug.Log("point " + point);
+            Debug.Log("init point " + initPointIndex);
 
 
-            c++;
+
+             c++;
             if (c > 1000)
             {
                 Debug.Log("OVERLOOPED");
                 break;
             }
         }
+        Debug.Log("LOCATED");
         ship.gameObject.transform.position = boundsOfCells[x, y].center;
         MarkShipCellsAsOccupied(ship);
     }

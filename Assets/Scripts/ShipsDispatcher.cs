@@ -8,6 +8,7 @@ public class ShipsDispatcher : Ship
     static Dictionary<string, int> shipsLeftToAllocate = new Dictionary<string, int>();
     static Dictionary<string, Text> shipsLabels = new Dictionary<string, Text>();
     static List<ShipsDispatcher> allShips = new List<ShipsDispatcher>();
+    static bool autoLocating = false;
 
     public GameObject shipPrefab;
     public static Ship currentShip;
@@ -17,17 +18,16 @@ public class ShipsDispatcher : Ship
     // Start is called before the first frame update
     void Start()
     {
-        FillLabelsDict();        
-        if (gameObject.name.Contains("(Clone)")) allShips.Add(this);
-        else GameField.OnAutoLocate += OnAutoLocateClick;
+        FillLabelsDict();
+        if (!autoLocating) allShips.Add(this);
         dictKey = gameObject.name.Replace("(Clone)", null);
 
-        var shipsToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
-        if (!shipsLeftToAllocate.ContainsKey(gameObject.name))
+        var shipsOfKindToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
+        if (!shipsLeftToAllocate.ContainsKey(dictKey))
         {
-            shipsLeftToAllocate.Add(gameObject.name, shipsToAllocate);
-            RefreshLabel();
+            shipsLeftToAllocate.Add(gameObject.name, shipsOfKindToAllocate);
         }
+        RefreshLabel();
     }
 
     void OnDestroy()
@@ -35,13 +35,28 @@ public class ShipsDispatcher : Ship
         allShips.Remove(this);
     }
 
-    void OnAutoLocateClick()
+    public static ShipsDispatcher[] GetAllShips(bool templateOnes)
     {
-        while (shipsLeftToAllocate[dictKey] > 0)
+        var res = new List<ShipsDispatcher>();
+        foreach (var disp in allShips)
         {
-            Instantiate(shipPrefab, transform.parent.transform);
-            shipsLeftToAllocate[dictKey]--;
+            if (disp.gameObject.name.Contains("Clone") ^ templateOnes)
+            {
+                res.Add(disp);
+            }
         }
+        return res.ToArray();
+    }
+
+    public void GenerateAllAmount()
+    {
+        autoLocating = true;
+        for (int i = 0; i < shipsLeftToAllocate[dictKey]; i++)
+        {
+            var ship = Instantiate(shipPrefab, transform.parent.transform);
+            allShips.Add(ship.GetComponentInChildren<ShipsDispatcher>());
+        }
+        shipsLeftToAllocate[dictKey] = 0;
     }
 
     void FillLabelsDict()
@@ -80,12 +95,5 @@ public class ShipsDispatcher : Ship
     void RefreshLabel()
     {
         shipsLabels[dictKey].text = shipsLeftToAllocate[dictKey] + "x";
-    }
-
-    public static ShipsDispatcher[] GetAllShips()
-    {
-        var result = new ShipsDispatcher[allShips.Count];
-        allShips.CopyTo(result);
-        return result;
     }
 }
