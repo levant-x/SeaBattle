@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ShipsDispatcher : Ship
+public class ShipsDispatcher : MonoBehaviour
 {
     static Dictionary<string, int> shipsLeftToAllocate = new Dictionary<string, int>();
     static Dictionary<string, Text> shipsLabels = new Dictionary<string, Text>();
@@ -14,12 +14,13 @@ public class ShipsDispatcher : Ship
     public static Ship currentShip;
     string dictKey;
 
-        
+
     // Start is called before the first frame update
-    void Start()
+    protected virtual void Start()
     {
         FillLabelsDict();
-        if (!autoLocating) allShips.Add(this);
+        Debug.Log("START DISPAT " + name);
+        /*if (!autoLocating)*/ allShips.Add(this);
         dictKey = gameObject.name.Replace("(Clone)", null);
 
         var shipsOfKindToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
@@ -40,11 +41,15 @@ public class ShipsDispatcher : Ship
         var res = new List<ShipsDispatcher>();
         foreach (var disp in allShips)
         {
+            Debug.Log(disp.gameObject.name + " forming list");
             if (disp.gameObject.name.Contains("Clone") ^ templateOnes)
             {
                 res.Add(disp);
+                //Debug.Log(disp.FloorsNum() + "  " + disp.name + " sent to list");
             }
         }
+        Debug.Log("TOTAL " + allShips.Count);
+        Debug.Log("List lenth " + res.Count);
         return res.ToArray();
     }
 
@@ -54,7 +59,8 @@ public class ShipsDispatcher : Ship
         for (int i = 0; i < shipsLeftToAllocate[dictKey]; i++)
         {
             var ship = Instantiate(shipPrefab, transform.parent.transform);
-            allShips.Add(ship.GetComponentInChildren<ShipsDispatcher>());
+            ship.SendMessage("Start");
+            //allShips.Add(ship.GetComponentInChildren<ShipsDispatcher>());
         }
         shipsLeftToAllocate[dictKey] = 0;
     }

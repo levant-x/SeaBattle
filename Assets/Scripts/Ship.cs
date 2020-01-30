@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Ship : MonoBehaviour
+public class Ship : ShipsDispatcher
 {
     public enum Orientation
     {
@@ -21,17 +21,20 @@ public class Ship : MonoBehaviour
     public bool isWithinCell = false, isPositionCorrect = false;
     public Vector3 cellCenterPosition;
 
-    ShipsDispatcher dispatcher;
-    Vector3 finalPos;
+    Vector3 lastPos;
+    Orientation lastOrientation;
     Camera cam;
     Animator[] animators;
-    bool toMove = false, isWorkingCopy = false, isCollided = false, wasLocatedOnce = false;
+    bool toMove = false, isWorkingCopy = false, wasLocatedOnce = false;
     int floorsNum;
 
     // Start is called before the first frame update
-    void Start()
-    {        
-        dispatcher = GetComponentInChildren<ShipsDispatcher>();
+    protected override void Start()
+    {
+        base.Start();
+        Debug.Log("START SHIP " + name);
+
+        //dispatcher = GetComponentInChildren<ShipsDispatcher>();
         isWorkingCopy = gameObject.name.Contains("(Clone)");
         cam = Camera.main;
         floorsNum = transform.childCount;
@@ -55,26 +58,13 @@ public class Ship : MonoBehaviour
             buttonScript.onClick.AddListener(OnFloorClick); // making button clickable
         }
 
-        //var boxCollider = gameObject.AddComponent<BoxCollider2D>();
-        //boxCollider.isTrigger = true;
-        //boxCollider.size = new Vector2((floorsNum + 0.5f) * floorSize, floorSize * 1.5f);
-        //boxCollider.offset = new Vector2(floorsNum * floorSize / 2 - floorSize / 2, 0);
-    }
-
-    void OnTriggerEnter2D(Collider2D collider2D)
-    {
-        isCollided = true;
-    }
-
-    void OnTriggerExit2D(Collider2D collider2D)
-    {
-        isCollided = false;
+        Debug.Log("START " + floorsNum);
     }
 
     // Update is called once per frame
     void Update()
     {
-        toMove = Equals(ShipsDispatcher.currentShip);
+        toMove = Equals(currentShip);
         if (!toMove) return;
 
         var mousePos = Input.mousePosition;
@@ -88,11 +78,12 @@ public class Ship : MonoBehaviour
         {
             if (wasLocatedOnce)
             {
-                transform.position = finalPos;
+                transform.position = lastPos;
+                if (orientation != lastOrientation) Rotate();
                 isPositionCorrect = true;
             }
             else Destroy(gameObject);
-            ShipsDispatcher.currentShip = null;
+            currentShip = null;
         }
         else if (Input.GetKeyUp(KeyCode.Space)) Rotate();
         SwitchPlacementAnimation();
@@ -103,12 +94,18 @@ public class Ship : MonoBehaviour
         if (!Input.GetMouseButtonUp(0)) return;
         else if (toMove && isPositionCorrect)
         {
-            finalPos = transform.position;
+            SetToPlace();
             GameField.MarkShipCellsAsOccupied(this);
         }
         else if (wasLocatedOnce && isWorkingCopy) GameField.TakeShipOff(this);
-        dispatcher.OnShipClick();
+        /*dispatcher.*/OnShipClick();
         if (!wasLocatedOnce) wasLocatedOnce = true;
+    }
+
+    void SetToPlace()
+    {
+        lastPos = transform.position;
+        lastOrientation = orientation;
     }
 
     public void Rotate()
@@ -124,14 +121,17 @@ public class Ship : MonoBehaviour
         transform.Rotate(new Vector3(0, 0, angleFloat), Space.Self);
     }
 
-    public int FloorsNum()
+    public void AutoLocate()
     {
-        return floorsNum;
+        SetToPlace();
+        transform.position = cellCenterPosition;
+        wasLocatedOnce = true;
     }
 
-    public bool IsCollided()
+    public int FloorsNum()
     {
-        return isCollided;
+        Debug.Log("FLOORS NUM ASKED, is " + floorsNum);
+        return floorsNum;
     }
 
     public bool WasLocatedOnce()

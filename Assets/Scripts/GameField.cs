@@ -95,14 +95,14 @@ public class GameField : MonoBehaviour
         var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1 };
         for (int i = 0; i < ship.FloorsNum(); i++)
         {
+            if (!IsPointWithinMatrix(x, y)) { Debug.Log("OUTSIDE"); return false; }
             for (int j = 0; j < 8; j++)
             {
                 int shiftX = x + dx[j], shiftY = y + dy[j];
                 var isPosAppropr = !IsPointWithinMatrix(shiftX, shiftY) ||
                     body[shiftX, shiftY] != (int)CellState.Occupied;
-                if (!isPosAppropr) return false;
+                if (!isPosAppropr) { Debug.Log("SIDE-By-SIDE"); return false; }
             }
-            if (!IsPointWithinMatrix(x, y)) return false;
             if (ship.orientation == Ship.Orientation.Horizontal) x++;
             else y--;
         }     
@@ -132,24 +132,29 @@ public class GameField : MonoBehaviour
         var cellNormalPos = GetCellMatrixPos(ship.cellCenterPosition);
         int x = (int)cellNormalPos.x, y = (int)cellNormalPos.y;
 
+
+        Debug.Log(x + " :: " + y);
+        Debug.Log("MARKING SHIP CELL for " + ship.name + " , floors " + ship.FloorsNum());
+
+
         for (int i = 0; i < ship.FloorsNum(); i++)
         {
             body[x, y] = (int)cellState;
-            if (ship.orientation == Ship.Orientation.Horizontal) x += 1;
-            else y -= 1;
+            if (ship.orientation == Ship.Orientation.Horizontal) x++;
+            else y--;
         }
 
 
 
-        //for (int i = 0; i < Width(); i++)
-        //{
-        //    var line = "";
-        //    for (int j = 0; j < Height(); j++)
-        //    {
-        //        line += body[i, j] + "  ";
-        //    }
-        //    Debug.Log(line);
-        //}
+        for (int i = 0; i < Width(); i++) // Displaying field matrix
+        {
+            var line = "";
+            for (int j = 0; j < Height(); j++)
+            {
+                line += body[i, j] + "  ";
+            }
+            Debug.Log(line);
+        }
     }
 
     static Vector2 GetCellMatrixPos(Vector2 pointInField)
@@ -176,23 +181,30 @@ public class GameField : MonoBehaviour
 
         StartCoroutine(WaitForAllShips(playShips));
 
+       // WaitForAllShips(playShips);
+
         //foreach (var ship in playShips)
         //{
         //    AutoLocateShip(ship);
         //}
     }
 
-    IEnumerator WaitForAllShips(ShipsDispatcher[] ships)
+    IEnumerator WaitForAllShips(ShipsDispatcher[] dispatchers)
     {
-        foreach (var ship in ships)
+        foreach (var disp in dispatchers)
         {
+            var ship = (Ship)disp;
             AutoLocateShip(ship);
+            ship.AutoLocate();
 
-
-            while (!Input.GetKeyDown(KeyCode.Space))
-            {
-                yield return new WaitForSeconds(waitTime);
-            }
+            //System.Threading.Thread.Sleep(1000);
+            yield return new WaitForSeconds(1);
+            UnityEditor.EditorApplication.isPaused = true;
+            //while (true)
+            //{
+            //    if (Input.GetKeyUp(KeyCode.Space)) break;
+            //    //yield return null;
+            //}
         }
     }
 
@@ -211,8 +223,8 @@ public class GameField : MonoBehaviour
 
     void AutoLocateShip(Ship ship)
     {
-        int fieldSqr = body.Length, initPointIndex = 0;
-        var step = Random.Range(fieldSqr / 4, fieldSqr / 3);
+        int fieldSqr = body.Length, steppedAcrossBy = 0;
+        var step = Random.Range(fieldSqr * 2 / 3, fieldSqr * 6 / 7);
         int point = Random.Range(0, fieldSqr), x, y;
 
         Debug.Log(ship.name +  " at point " + point);
@@ -222,8 +234,11 @@ public class GameField : MonoBehaviour
         {
             x = point % Width();
             y = point / Width();
+            if (Random.Range(0, 200) % 2 == 0) ship.Rotate();
 
             Debug.Log(x + " :: " + y);
+            Debug.Log(ship.orientation);
+
             //while (!Input.GetKeyUp(KeyCode.Space))
             //{
             //}
@@ -236,26 +251,37 @@ public class GameField : MonoBehaviour
             Debug.Log("Moving across");
 
             point += step;
-            initPointIndex += step;
+            steppedAcrossBy += step;
             if (point >= fieldSqr) point -= fieldSqr;
-            if (initPointIndex >= fieldSqr)
+            if (steppedAcrossBy >= fieldSqr)
             {
-                initPointIndex -= fieldSqr;
+                steppedAcrossBy -= fieldSqr;
                 step--;
             }
             Debug.Log("point " + point);
-            Debug.Log("init point " + initPointIndex);
+            Debug.Log("init point " + steppedAcrossBy);
 
 
 
              c++;
             if (c > 1000)
             {
-                Debug.Log("OVERLOOPED");
+                Debug.Log("OVERLOoooooooooooooooOPED");
                 break;
             }
+
+            System.Threading.Thread.Sleep(1000);
+            UnityEditor.EditorApplication.isPaused = true;
+            //while (true)
+            //{
+            //    if (Input.GetKeyDown(KeyCode.Space)) break;
+            //    yield return null;
+            //}
         }
-        Debug.Log("LOCATED");
+        Debug.Log("LOCATED"); System.Threading.Thread.Sleep(1000);
+        UnityEditor.EditorApplication.isPaused = true;
+
+        ship.cellCenterPosition = boundsOfCells[x, y].center;
         ship.gameObject.transform.position = boundsOfCells[x, y].center;
         MarkShipCellsAsOccupied(ship);
     }
