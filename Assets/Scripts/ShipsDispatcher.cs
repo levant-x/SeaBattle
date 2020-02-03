@@ -8,20 +8,18 @@ public class ShipsDispatcher : MonoBehaviour
     static Dictionary<string, int> shipsLeftToAllocate = new Dictionary<string, int>();
     static Dictionary<string, Text> shipsLabels = new Dictionary<string, Text>();
     static List<ShipsDispatcher> allShips = new List<ShipsDispatcher>();
-    static bool autoLocating = false;
 
     public GameObject shipPrefab;
     public static Ship currentShip;
     string dictKey;
 
-
+        
     // Start is called before the first frame update
     protected virtual void Start()
     {
-        FillLabelsDict();
-        Debug.Log("START DISPAT " + name);
-        /*if (!autoLocating)*/ allShips.Add(this);
+        allShips.Add(this);
         dictKey = gameObject.name.Replace("(Clone)", null);
+        if (!gameObject.name.Contains("Clone")) FillLabelsDict();
 
         var shipsOfKindToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
         if (!shipsLeftToAllocate.ContainsKey(dictKey))
@@ -40,22 +38,17 @@ public class ShipsDispatcher : MonoBehaviour
     {
         var res = new List<ShipsDispatcher>();
         foreach (var disp in allShips)
-        {
-            Debug.Log(disp.gameObject.name + " forming list");
+        {         
             if (disp.gameObject.name.Contains("Clone") ^ templateOnes)
             {
                 res.Add(disp);
-                //Debug.Log(disp.FloorsNum() + "  " + disp.name + " sent to list");
             }
         }
-        Debug.Log("TOTAL " + allShips.Count);
-        Debug.Log("List lenth " + res.Count);
         return res.ToArray();
     }
 
     public void GenerateAllAmount()
     {
-        autoLocating = true;
         for (int i = 0; i < shipsLeftToAllocate[dictKey]; i++)
         {
             var ship = Instantiate(shipPrefab, transform.parent.transform);
@@ -67,16 +60,11 @@ public class ShipsDispatcher : MonoBehaviour
 
     void FillLabelsDict()
     {
-        if (shipsLabels.Count > 0) return;
-        var textBlocks = transform.parent.GetComponentsInChildren<Text>();
-        foreach (var textBlock in textBlocks)
-        {
-            if (!textBlock.name.Contains("label")) continue;
-            shipsLabels.Add(textBlock.name.Replace(" label", null), textBlock);
-        }
+        var textBlock = GameObject.Find(dictKey + " label").GetComponent<Text>();        
+        shipsLabels.Add(textBlock.name.Replace(" label", null), textBlock);
     }
 
-    public void OnShipClick()
+    protected void OnShipClick()
     {        
         if (gameObject.name.Contains("Clone")) // ship on the field
         {
