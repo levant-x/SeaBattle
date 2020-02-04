@@ -87,6 +87,7 @@ public class Ship : ShipsDispatcher
                 transform.position = lastPos;
                 if (orientation != lastOrientation) Rotate();
                 isPositionCorrect = true;
+                GameField.MarkShipCellsAsOccupied(this);
             }
             else Destroy(gameObject);
             currentShip = null;
@@ -141,7 +142,6 @@ public class Ship : ShipsDispatcher
 
     public int FloorsNum()
     {
-        //Debug.Log("FLOORS NUM ASKED, is " + floorsNum);
         return floorsNum;
     }
 
