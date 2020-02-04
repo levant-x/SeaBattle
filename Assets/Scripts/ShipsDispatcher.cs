@@ -17,7 +17,6 @@ public class ShipsDispatcher : MonoBehaviour
     // Start is called before the first frame update
     protected virtual void Start()
     {
-        allShips.Add(this);
         dictKey = gameObject.name.Replace("(Clone)", null);
         if (!gameObject.name.Contains("Clone")) FillLabelsDict();
 
@@ -26,6 +25,7 @@ public class ShipsDispatcher : MonoBehaviour
         {
             shipsLeftToAllocate.Add(gameObject.name, shipsOfKindToAllocate);
         }
+        if (shipsLeftToAllocate[dictKey] > 0) allShips.Add(this);
         RefreshLabel();
     }
 
@@ -44,6 +44,7 @@ public class ShipsDispatcher : MonoBehaviour
                 res.Add(disp);
             }
         }
+        Debug.Log($"all ships count {allShips.Count}");
         return res.ToArray();
     }
 
@@ -53,6 +54,7 @@ public class ShipsDispatcher : MonoBehaviour
         {
             var ship = Instantiate(shipPrefab, transform.parent.transform);
             ship.SendMessage("Start");
+            Debug.Log("Generating ship " + ship.name);
             //allShips.Add(ship.GetComponentInChildren<ShipsDispatcher>());
         }
         shipsLeftToAllocate[dictKey] = 0;

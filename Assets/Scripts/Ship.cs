@@ -22,17 +22,22 @@ public class Ship : ShipsDispatcher
     public Vector3 cellCenterPosition;
 
     Vector3 lastPos;
+    // first - to set initial angle
     Orientation firstOrientation, lastOrientation;
     Animator[] animators;
     bool toMove = false, isWorkingCopy = false, wasLocatedOnce = false;
     int floorsNum;
+    float rotAngle;
 
     // Start is called before the first frame update
     protected override void Start()
     {
         base.Start();
+        if (orientation == Orientation.Horizontal) rotAngle = 90f;
+        else rotAngle = -90f;
+
         isWorkingCopy = gameObject.name.Contains("(Clone)");
-        firstOrientation = orientation;
+        firstOrientation = lastOrientation = orientation;
         floorsNum = transform.childCount;
         animators = new Animator[floorsNum];
         float floorSize = 0;
@@ -84,10 +89,10 @@ public class Ship : ShipsDispatcher
         {
             if (wasLocatedOnce)
             {
-                transform.position = lastPos;
+                transform.position = cellCenterPosition = lastPos;
                 if (orientation != lastOrientation) Rotate();
-                isPositionCorrect = true;
                 GameField.MarkShipCellsAsOccupied(this);
+                isPositionCorrect = isWithinCell = true;
             }
             else Destroy(gameObject);
             currentShip = null;
@@ -101,15 +106,15 @@ public class Ship : ShipsDispatcher
         if (!Input.GetMouseButtonUp(0)) return;
         else if (toMove && isPositionCorrect)
         {
-            RememberState();
+            RememberPositionAndRotation();
             GameField.MarkShipCellsAsOccupied(this);
         }
         else if (wasLocatedOnce && isWorkingCopy) GameField.TakeShipOff(this);
         OnShipClick();
-        if (!wasLocatedOnce) wasLocatedOnce = true;
+        wasLocatedOnce = true;
     }
 
-    void RememberState()
+    void RememberPositionAndRotation()
     {
         lastPos = transform.position;
         lastOrientation = orientation;
@@ -117,27 +122,23 @@ public class Ship : ShipsDispatcher
 
     void Rotate()
     {
-        //var angleStr = rotateBy.ToString().Replace("Deg", null);
-        var angleFloat = -90f; //float.Parse(angleStr);
         if (orientation == Orientation.Horizontal) orientation = Orientation.Vertical;
-        else
-        {
-            orientation = Orientation.Horizontal;
-            angleFloat = -angleFloat;
-        }
-        transform.Rotate(new Vector3(0, 0, angleFloat), Space.Self);
+        else orientation = Orientation.Horizontal;
+        rotAngle = -rotAngle;
+        transform.Rotate(new Vector3(0, 0, rotAngle), Space.Self);
     }
 
     public void AutoLocate()
     {
         transform.position = cellCenterPosition;
-        RememberState();
-        if (firstOrientation != orientation)
+        if (lastOrientation != orientation)
         {
-            orientation = firstOrientation;
+            orientation = lastOrientation;
             Rotate();
+            Debug.Log($"ship {name} rotated to {orientation} by {rotAngle}");
         }
-        wasLocatedOnce = true;
+        RememberPositionAndRotation();
+        isPositionCorrect = wasLocatedOnce = true;
     }
 
     public int FloorsNum()

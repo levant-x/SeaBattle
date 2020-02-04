@@ -15,7 +15,7 @@ public class GameField : MonoBehaviour
     public float bottomLeftX, bottomLeftY;
     public bool toAdjustOrigin = false;
 
-    protected static int[,] body = new int[10, 8];
+    protected static int[,] body = new int[10, 9];
     protected static Bounds[,] boundsOfCells;
     static Vector2 bottomLeftCorner;
     protected static float cellSize;
@@ -95,13 +95,13 @@ public class GameField : MonoBehaviour
         var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1 };
         for (int i = 0; i < ship.FloorsNum(); i++)
         {
-            if (!IsPointWithinMatrix(x, y)) { Debug.Log("OUTSIDE"); return false; }
+            if (!IsPointWithinMatrix(x, y)) return false;
             for (int j = 0; j < 8; j++)
             {
                 int shiftX = x + dx[j], shiftY = y + dy[j];
                 var isPosAppropr = !IsPointWithinMatrix(shiftX, shiftY) ||
                     body[shiftX, shiftY] != (int)CellState.Occupied;
-                if (!isPosAppropr) { Debug.Log("SIDE-By-SIDE"); return false; }
+                if (!isPosAppropr) return false;
             }
             if (ship.orientation == Ship.Orientation.Horizontal) x++;
             else y--;
@@ -131,6 +131,8 @@ public class GameField : MonoBehaviour
     {
         var cellNormalPos = GetCellMatrixPos(ship.cellCenterPosition);
         int x = (int)cellNormalPos.x, y = (int)cellNormalPos.y;
+        if (!IsPointWithinMatrix(x, y)) throw new System.Exception("Cell center incorrect");
+
 
 
         Debug.Log(x + " :: " + y);
