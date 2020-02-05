@@ -11,21 +11,25 @@ public class ShipsDispatcher : MonoBehaviour
 
     public GameObject shipPrefab;
     public static Ship currentShip;
-    string dictKey;
-
+    protected string dictKey;
+    bool isWorkingInstance = true;
         
     // Start is called before the first frame update
     protected virtual void Start()
     {
+        isWorkingInstance = gameObject.name.Contains("(Clone)");
         dictKey = gameObject.name.Replace("(Clone)", null);
-        if (!gameObject.name.Contains("Clone")) FillLabelsDict();
+        if (!isWorkingInstance)
+        {
+            FillLabelsDict();
+            allShips.Add(this);
+        }
 
         var shipsOfKindToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
         if (!shipsLeftToAllocate.ContainsKey(dictKey))
         {
-            shipsLeftToAllocate.Add(gameObject.name, shipsOfKindToAllocate);
+            shipsLeftToAllocate.Add(dictKey, shipsOfKindToAllocate);
         }
-        if (shipsLeftToAllocate[dictKey] > 0) allShips.Add(this);
         RefreshLabel();
     }
 
@@ -34,30 +38,33 @@ public class ShipsDispatcher : MonoBehaviour
         allShips.Remove(this);
     }
 
-    public static ShipsDispatcher[] GetAllShips(bool templateOnes)
+    static ShipsDispatcher[] GetAllShips(bool templateOnes)
     {
-        var res = new List<ShipsDispatcher>();
+        var result = new List<ShipsDispatcher>();
         foreach (var disp in allShips)
-        {         
-            if (disp.gameObject.name.Contains("Clone") ^ templateOnes)
-            {
-                res.Add(disp);
-            }
-        }
-        Debug.Log($"all ships count {allShips.Count}");
-        return res.ToArray();
+            if (disp.isWorkingInstance ^ templateOnes) result.Add(disp);
+        return result.ToArray();
     }
 
-    public void GenerateAllAmount()
+    public static ShipsDispatcher[] CreateAllShips()
     {
-        for (int i = 0; i < shipsLeftToAllocate[dictKey]; i++)
+        var templateShips = GetAllShips(true);
+        foreach (var tmplShip in templateShips)
         {
-            var ship = Instantiate(shipPrefab, transform.parent.transform);
-            ship.SendMessage("Start");
-            Debug.Log("Generating ship " + ship.name);
-            //allShips.Add(ship.GetComponentInChildren<ShipsDispatcher>());
+            CreateShip(tmplShip);
         }
-        shipsLeftToAllocate[dictKey] = 0;
+        return GetAllShips(false); 
+    }
+
+    static void CreateShip(ShipsDispatcher dispatcher)
+    {
+        for (int i = 0; i < shipsLeftToAllocate[dispatcher.dictKey]; i++)
+        {
+            var ship = Instantiate(dispatcher.shipPrefab,
+                dispatcher.transform.parent.transform);
+            allShips.Add(ship.GetComponent<Ship>());
+        }
+        shipsLeftToAllocate[dispatcher.dictKey] = 0;
     }
 
     void FillLabelsDict()
@@ -70,12 +77,15 @@ public class ShipsDispatcher : MonoBehaviour
     {        
         if (gameObject.name.Contains("Clone")) // ship on the field
         {
-            if (currentShip == null) currentShip = GetComponentInChildren<Ship>();
+            if (currentShip == null)
+            {
+                currentShip = GetComponentInChildren<Ship>();
+            }
             else if (currentShip.isPositionCorrect)
             {
-                if (!currentShip.WasLocatedOnce()) shipsLeftToAllocate[dictKey]--;   
-                RefreshLabel();   
-                currentShip = null;          
+                if (!currentShip.WasLocatedOnce()) shipsLeftToAllocate[dictKey]--;
+                RefreshLabel();
+                currentShip = null;
             }
         }
         else if (currentShip == null) // sample template
@@ -84,8 +94,6 @@ public class ShipsDispatcher : MonoBehaviour
             var shipObjToPlay = Instantiate(shipPrefab, transform.parent.transform);
             currentShip = shipObjToPlay.GetComponentInChildren<Ship>();
         }
-                
-        Debug.Log("OnShipClick");
     }
 
     void RefreshLabel()

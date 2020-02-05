@@ -18,14 +18,15 @@ public class Ship : ShipsDispatcher
     public Orientation orientation = Orientation.Horizontal;
     public RotationDirection rotateBy = RotationDirection.Deg270;
     public GameObject floorButtonPref;
-    public bool isWithinCell = false, isPositionCorrect = false;
-    public Vector3 cellCenterPosition;
+    public bool isWithinCell { get; set; } = false;
+    public bool isPositionCorrect { get; set; } = false;
+    public Vector3 cellCenterPosition { get; set; }
 
     Vector3 lastPos;
     // first - to set initial angle
     Orientation firstOrientation, lastOrientation;
     Animator[] animators;
-    bool toMove = false, isWorkingCopy = false, wasLocatedOnce = false;
+    bool toMove = false, wasLocatedOnce = false;
     int floorsNum;
     float rotAngle;
 
@@ -36,7 +37,7 @@ public class Ship : ShipsDispatcher
         if (orientation == Orientation.Horizontal) rotAngle = 90f;
         else rotAngle = -90f;
 
-        isWorkingCopy = gameObject.name.Contains("(Clone)");
+        
         firstOrientation = lastOrientation = orientation;
         floorsNum = transform.childCount;
         animators = new Animator[floorsNum];
@@ -64,6 +65,7 @@ public class Ship : ShipsDispatcher
             buttonRectTransf.sizeDelta = new Vector2(floorSize, floorSize); // sizing button
             HookButtonClick(floor);
         }
+        Debug.Log($"{name} created START");
     }
 
     void HookButtonClick(Transform floor)
@@ -104,12 +106,13 @@ public class Ship : ShipsDispatcher
     void OnFloorClick()
     {
         if (!Input.GetMouseButtonUp(0)) return;
-        else if (toMove && isPositionCorrect)
+        else if (toMove)
         {
+            if (!isPositionCorrect) return;
             RememberPositionAndRotation();
             GameField.MarkShipCellsAsOccupied(this);
         }
-        else if (wasLocatedOnce && isWorkingCopy) GameField.TakeShipOff(this);
+        else if (wasLocatedOnce) GameField.TakeShipOff(this);
         OnShipClick();
         wasLocatedOnce = true;
     }

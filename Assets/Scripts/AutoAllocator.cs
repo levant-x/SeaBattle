@@ -6,56 +6,57 @@ public class AutoAllocator : GameField
 {
     List<Bounds> spawnAreas = new List<Bounds>();
     Bounds selectedArea;
+    ShipsDispatcher[] playShipsDispatchers;
 
     public void OnAutoLocateClick()
     {
-        var templateShips = ShipsDispatcher.GetAllShips(true);
-        foreach (var tplShip in templateShips)
-        {
-            tplShip.GenerateAllAmount();
-        }
-        var playShips = ShipsDispatcher.GetAllShips(false);
+        playShipsDispatchers = ShipsDispatcher.CreateAllShips();
         ClearGameField();
 
 
         Debug.Log("Field clear");
 
+
+
         spawnAreas.Add(new Bounds(new Vector3((float)Width() / 2, (float)Height() / 2),
             new Vector3(Width(), Height())));
         Debug.Log($"areas count {spawnAreas.Count}");
-        Debug.Log($"ships count {playShips.Length}");
-
-
-        //StartCoroutine(AllocateEachShip(playShips));
-        AllocateEachShip(playShips);
-
-        //foreach (var ship in playShips)
-        //{
-        //    AutoLocateShip(ship);
-        //}
+        Debug.Log($"ships count {playShipsDispatchers.Length}");
+        StartCoroutine(AutoLocateShips());
     }
 
     void ClearGameField()
     {
-        for (int i = 0; i < Width(); i++)
+        for (int i = 0; i < body.Length; i++)
         {
-            for (int j = 0; j < Height(); j++)
-            {
-                body[i, j] = (int)CellState.Empty;
-            }
+            body[i % Width(), i / Width()] = (int)CellState.Empty;
         }
     }
 
-    void AllocateEachShip(ShipsDispatcher[] dispatchers)
+    bool AreAllShipsInitialized()
     {
-        foreach (var disp in dispatchers)
-        {
-            var ship = (Ship)disp;
-            AutoLocateShip(ship);
+        if (playShipsDispatchers.Length == 0) return false;
+        foreach (Ship ship in playShipsDispatchers)
+            if (ship.FloorsNum() == 0) return false;
+        return true;
+    }
 
-            //yield return null;
-            //Pause("next ship!");
+    IEnumerator AutoLocateShips()
+    {
+        Debug.Log("COROUTINE");
+        int c = 0;
+        while (true)
+        {
+            c++;
+            if (c > 1000) break;
+            var allShipsInitialized = AreAllShipsInitialized();
+            if (allShipsInitialized) break;
+            yield return null;
         }
+        Debug.Log("SHIPS COMPLETED " + c);
+
+        foreach (var shipDisp in playShipsDispatchers)
+            AutoLocateShip((Ship)shipDisp);
         spawnAreas.Clear();
     }
 
@@ -191,7 +192,7 @@ public class AutoAllocator : GameField
 
     void CreateSubarea(Bounds initArea, float max, float min, bool isVertical)
     {
-        if (max - min < 1) { Debug.Log(max - min + " diff"); return; }
+        if (max - min < 1) return;
         var subArea = new Bounds();
         if (isVertical)
         {

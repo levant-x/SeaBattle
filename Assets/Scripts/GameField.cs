@@ -87,16 +87,18 @@ public class GameField : MonoBehaviour
         ship.isWithinCell = true;
         ship.cellCenterPosition = boundsOfCells[x, y].center;
         ship.isPositionCorrect = IsLocationAppropriate(ship, x, y);
+
+        if (ship.isPositionCorrect) Debug.Log("correct!");
     }
 
     static bool IsLocationAppropriate(Ship ship, int x, int y)
     {
-        var dx = new int[] { 1, 1, 0, -1, -1, -1, 0, 1 }; // to check surrounding cells
-        var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1 };
+        var dx = new int[] { 1, 1, 0, -1, -1, -1, 0, 1, 0 }; // to check surrounding cells
+        var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
         for (int i = 0; i < ship.FloorsNum(); i++)
         {
             if (!IsPointWithinMatrix(x, y)) return false;
-            for (int j = 0; j < 8; j++)
+            for (int j = 0; j < 9; j++)
             {
                 int shiftX = x + dx[j], shiftY = y + dy[j];
                 var isPosAppropr = !IsPointWithinMatrix(shiftX, shiftY) ||
@@ -148,15 +150,15 @@ public class GameField : MonoBehaviour
 
 
 
-        for (int i = 0; i < Width(); i++) // Displaying field matrix
-        {
-            var line = "";
-            for (int j = 0; j < Height(); j++)
-            {
-                line += body[i, j] + "  ";
-            }
-            Debug.Log(line);
-        }
+        //for (int i = Height() - 1; i >= 0; i--) // Displaying field matrix
+        //{
+        //    var line = "";
+        //    for (int j = 0; j < Width(); j++)
+        //    {
+        //        line += body[j, i] + "  ";
+        //    }
+        //    Debug.Log(line);
+        //}
     }
 
     protected static Vector2 GetCellMatrixPos(Vector2 pointInField)
