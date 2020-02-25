@@ -68,8 +68,8 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
-  m_Sprite: {fileID: 21300000, guid: 83e4d733ca6f2a94eb9a393ec9dccf29, type: 3}
+  m_SortingOrder: 0
+  m_Sprite: {fileID: 21300000, guid: fac4ae0ec538846418bb2a1822274aa7, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -151,12 +151,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shipPrefab: {fileID: 930807494053279861}
   orientation: 0
-  rotateBy: 0
   floorButtonPref: {fileID: 6396866382510916060, guid: d3d626bac4e68ff4da3fd12bca82cdb8,
     type: 3}
-  isWithinCell: 0
-  isPositionCorrect: 0
-  cellCenterPosition: {x: 0, y: 0, z: 0}
 --- !u!222 &4708306248697210944
 CanvasRenderer:
   m_ObjectHideFlags: 0

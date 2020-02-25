@@ -12,21 +12,26 @@ public class GameField : MonoBehaviour
 
 
     public GameObject cellPrefab;
-    public float bottomLeftX, bottomLeftY;
+    public float bottomLeftX;
+    public float bottomLeftY;
     public bool toAdjustOrigin = false;
+    public static float cellToCamHeightProportion = 1 / 12f;
 
     protected static int[,] body = new int[10, 9];
     protected static Bounds[,] boundsOfCells;
-    static Vector2 bottomLeftCorner;
     protected static float cellSize;
+    protected static string originObjName = "GameFieldOrigin";
 
-    List<GameObject> cells = new List<GameObject>();
+    GameObject origin;
+    static Vector2 bottomLeftCorner;
+
 
     // Start is called before the first frame update
-    void Start()
+    protected virtual void Start()
     {
+        origin = GameObject.Find(originObjName);
         var sprRenderer = cellPrefab.GetComponent<SpriteRenderer>();
-        cellSize = sprRenderer.bounds.size.x;
+        Settings.ScaleSpriteByY(sprRenderer, cellToCamHeightProportion, out cellSize);
         GenerateField();
         bottomLeftCorner = boundsOfCells[0, 0].min;        
     }
@@ -34,11 +39,9 @@ public class GameField : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (toAdjustOrigin)
-        {
-            foreach (var item in cells) Destroy(item);
-            GenerateField();
-        }
+        if (!toAdjustOrigin) return;
+        var originPosition = new Vector2(bottomLeftX, bottomLeftY);
+        origin.transform.position = originPosition;
     }
 
     void GenerateField()
@@ -46,16 +49,25 @@ public class GameField : MonoBehaviour
         boundsOfCells = new Bounds[Width(), Height()];
         for (int i = 0; i < Width(); i++)
         {
-            for (int j = 0; j < Height(); j++)
-            {
-                var cellPos = new Vector2(bottomLeftX + i * cellSize, bottomLeftY + j * cellSize);
-                var cell = Instantiate(cellPrefab, cellPos, Quaternion.identity);
-                boundsOfCells[i, j] = new Bounds(cell.transform.position, 
-                    new Vector3(cellSize, cellSize));
-                body[i, j] = (int)CellState.Empty;
-                cells.Add(cell);
-            }
+            GenerateFieldColumn(i);
         }
+    }
+
+    void GenerateFieldColumn(int i)
+    {
+        for (int j = 0; j < Height(); j++)
+        {
+            var cellPos = new Vector2(bottomLeftX + i * cellSize, bottomLeftY + j * cellSize);
+            var cell = Instantiate(cellPrefab, cellPos, Quaternion.identity);
+            OnCellGenerated(i, j, cell);
+        }
+    }
+
+    protected virtual void OnCellGenerated(int i, int j, GameObject cell)
+    {
+        cell.transform.SetParent(origin.transform);
+        boundsOfCells[i, j] = cell.GetComponent<SpriteRenderer>().bounds;
+        body[i, j] = (int)CellState.Empty;
     }
 
     protected static int Width()
@@ -71,9 +83,9 @@ public class GameField : MonoBehaviour
     public static void CheckLocationOverField(Vector3 mousePos, Ship ship)
     {
         var upperRightBounds = boundsOfCells[Width() - 1, Height() - 1].max;
-        var isShipOverField = mousePos.x > bottomLeftCorner.x && mousePos.x < upperRightBounds.x &&
+        var isShipOverField = mousePos.x > bottomLeftCorner.x && 
+            mousePos.x < upperRightBounds.x &&
             mousePos.y > bottomLeftCorner.y && mousePos.y < upperRightBounds.y;
-
         if (!isShipOverField)
         {
             ship.isPositionCorrect = false;
@@ -88,26 +100,33 @@ public class GameField : MonoBehaviour
         ship.cellCenterPosition = boundsOfCells[x, y].center;
         ship.isPositionCorrect = IsLocationAppropriate(ship, x, y);
 
-        if (ship.isPositionCorrect) Debug.Log("correct!");
+        //if (ship.isPositionCorrect) Debug.Log("correct!");
     }
 
     static bool IsLocationAppropriate(Ship ship, int x, int y)
     {
-        var dx = new int[] { 1, 1, 0, -1, -1, -1, 0, 1, 0 }; // to check surrounding cells
-        var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
-        for (int i = 0; i < ship.FloorsNum(); i++)
+        for (int i = 0; i < ship.floorsNum; i++)
         {
-            if (!IsPointWithinMatrix(x, y)) return false;
-            for (int j = 0; j < 9; j++)
-            {
-                int shiftX = x + dx[j], shiftY = y + dy[j];
-                var isPosAppropr = !IsPointWithinMatrix(shiftX, shiftY) ||
-                    body[shiftX, shiftY] != (int)CellState.Occupied;
-                if (!isPosAppropr) return false;
-            }
+            if (!AreSurroundingCellsEmpty(ship, x, y))
+                return false;
             if (ship.orientation == Ship.Orientation.Horizontal) x++;
             else y--;
-        }     
+        }
+        return true;
+    }
+
+    static bool AreSurroundingCellsEmpty(Ship ship, int x, int y)
+    {
+        if (!IsPointWithinMatrix(x, y)) return false;
+        var dx = new int[] { 1, 1, 0, -1, -1, -1, 0, 1, 0 }; // to check surrounding cells
+        var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
+        for (int j = 0; j < 9; j++)
+        {
+            int shiftX = x + dx[j], shiftY = y + dy[j];
+            var isPosAppropr = !IsPointWithinMatrix(shiftX, shiftY) ||
+                body[shiftX, shiftY] != (int)CellState.Occupied;
+            if (!isPosAppropr) return false;
+        }
         return true;
     }
 
@@ -138,10 +157,10 @@ public class GameField : MonoBehaviour
 
 
         Debug.Log(x + " :: " + y);
-        Debug.Log("MARKING SHIP CELL for " + ship.name + " , floors " + ship.FloorsNum());
+        Debug.Log("MARKING SHIP CELL for " + ship.name + " , floors " + ship.floorsNum);
 
 
-        for (int i = 0; i < ship.FloorsNum(); i++)
+        for (int i = 0; i < ship.floorsNum; i++)
         {
             body[x, y] = (int)cellState;
             if (ship.orientation == Ship.Orientation.Horizontal) x++;
