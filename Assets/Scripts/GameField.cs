@@ -15,9 +15,9 @@ public class GameField : MonoBehaviour
     public float bottomLeftX;
     public float bottomLeftY;
     public bool toAdjustOrigin = false;
-    public static float cellToCamHeightProportion = 1 / 12f;
+    public static float cellToCamHeightProportion = 1 / 11f;
 
-    protected static int[,] body = new int[10, 9];
+    protected static int[,] body = new int[10, 8];
     protected static Bounds[,] boundsOfCells;
     protected static float cellSize;
     protected static string originObjName = "GameFieldOrigin";
@@ -30,10 +30,13 @@ public class GameField : MonoBehaviour
     protected virtual void Start()
     {
         origin = GameObject.Find(originObjName);
+        origin.transform.position = new Vector3(bottomLeftX, bottomLeftY);
+
         var sprRenderer = cellPrefab.GetComponent<SpriteRenderer>();
         Settings.ScaleSpriteByY(sprRenderer, cellToCamHeightProportion, out cellSize);
         GenerateField();
-        bottomLeftCorner = boundsOfCells[0, 0].min;        
+        bottomLeftCorner = boundsOfCells[0, 0].min;
+
     }
 
     // Update is called once per frame
