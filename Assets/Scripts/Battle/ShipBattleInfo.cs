@@ -5,6 +5,7 @@ using UnityEngine;
 public class ShipBattleInfo 
 {
     Dictionary<Vector2, bool> hitFloors = new Dictionary<Vector2, bool>();
+    int perimeter = 8;
 
 
     public Vector2 clearAreaStart { get; protected set; }
@@ -15,8 +16,8 @@ public class ShipBattleInfo
     public ShipBattleInfo(int x, int y)
     {
         var newFloorPos = new Vector2(x, y);
-        clearAreaStart = new Vector2(x - 1, y - 1);
-        clearAreaEnd = new Vector2(x + 1, y + 1);
+        clearAreaStart = new Vector2(x + 1, y + 1);
+        clearAreaEnd = new Vector2(x - 1, y - 1);
         AddFloor(clearAreaStart);
     }
 
@@ -25,7 +26,8 @@ public class ShipBattleInfo
         hitFloors.Add(newFloorPos, false);
         if (newFloorPos.x == clearAreaEnd.x)
             clearAreaEnd = new Vector2(newFloorPos.x + 1, newFloorPos.y);
-        else clearAreaEnd = new Vector2(newFloorPos.x, newFloorPos.y);
+        else clearAreaEnd = new Vector2(newFloorPos.x, newFloorPos.y - 1);
+        perimeter += 2;
         floorsCount++;
     }
 

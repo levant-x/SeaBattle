@@ -5,11 +5,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static GameField;
 
 public class Settings : MonoBehaviour
 {
-    public static int[,] PlayerField;
-    public static int[,] EnemyField;
+    public static CellState[,] PlayerField;
+    public static CellState[,] EnemyField;
 
     static GameObject[] sprites;
     static Settings instance;
