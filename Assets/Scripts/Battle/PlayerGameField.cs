@@ -12,7 +12,7 @@ public class PlayerGameField : GameField
 
     protected Animator[,] cellsAnimators;
     protected ShipsInfoStorage shipsInfoStorage = new ShipsInfoStorage();
-    protected bool discloseFloorCells = true;
+    protected bool discloseFloorCells = true, isGameOver = false;
 
     protected static PlayerGameField currentPlayer;
     protected PlayerGameField enemy = null;
@@ -69,8 +69,6 @@ public class PlayerGameField : GameField
 
     public AttackResult Attack(int x, int y)
     {
-        //Debug.Log(GetType() + " attacked by enemy " + enemy.GetType().Name);
-
         var result = AttackResult.Error;
         if (!CanReceiveAttack(x, y)) return result; 
         if (body[x, y] == CellState.Empty) body[x, y] = CellState.Misdelivered;
@@ -81,17 +79,9 @@ public class PlayerGameField : GameField
         if (result == AttackResult.Hit)
         {
             result = DamageShip(x, y);
-            if (shipsInfoStorage.AreAllShipsSunk()) GameOver();
+            if (shipsInfoStorage.AreAllShipsSunk()) isGameOver = true;
         }
-        else
-        {
-            //Debug.Log(currentPlayer.GetType() + " was current ");
-            //Debug.Log(enemy.GetType() + " is enemy");
-
-            //currentPlayer = this;
-
-            //Debug.Log(currentPlayer.GetType() + " plays now");
-        }
+        else currentPlayer = this;
         cellsAnimators[x, y].SetTrigger(animTrigger.ToString());
         return result;
     }
@@ -107,7 +97,7 @@ public class PlayerGameField : GameField
     {
         var damagedShip = shipsInfoStorage.GetShipInfo(x, y);
         damagedShip.HitFloor(x, y);
-        if (damagedShip.floorsCount == 0)
+        if (damagedShip.leftFloorsCount == 0)
         {
             ShipsInfoStorage.DelineateArea(damagedShip, MarkCell);
             ShipsInfoStorage.DelineateArea(damagedShip, AnimateCell);
@@ -127,17 +117,11 @@ public class PlayerGameField : GameField
         if (!IsPointWithinMatrix(x, y)) return;
         cellsAnimators[x, y].SetTrigger($"{CellState.Misdelivered}");
     } 
-    
-    protected void GameOver()
-    {
-
-    }
 
     void FixedUpdate()
     {
         if (Settings.isMultiplayerMode || !hasBeenInput) return;
-        Debug.Log(enemy.Attack(targetX, targetY));
+        enemy.Attack(targetX, targetY);
         hasBeenInput = false;
-        Debug.Log("input switched");
     }
 }

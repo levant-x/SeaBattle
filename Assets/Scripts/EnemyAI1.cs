@@ -10,8 +10,8 @@ public class EnemyAI1 : IAttacker
     protected List<int[]> emptyCellsRanges = new List<int[]>(1);
     int[] selectedRange;
 
-    List<int> indexes = new List<int>();
 
+    public bool isGameOver => shipsInfoStorage.AreAllShipsSunk();
 
     public AttackResult AttackGameField(PlayerGameField gameField)
     {
@@ -27,23 +27,11 @@ public class EnemyAI1 : IAttacker
         int x = (int)decartCoords.x, y = (int)decartCoords.y;
         var result = gameField.Attack(x, y);
 
-        if (result == AttackResult.Error) throw new System.Exception("attacking again "
-            + targetPoint);
         if (result == AttackResult.Hit || result == AttackResult.Sunk)
-        {
-            Debug.LogError("REgistering ship from AI");
-            shipsInfoStorage.RegisterShipFloor(x, y, true);
-
-        }
-            
+            shipsInfoStorage.RegisterShipFloor(x, y, true);            
         if (result == AttackResult.Sunk)
-        {
-            //Debug.Log("GETTING SUNK SHIP");
-            var damagedShip = shipsInfoStorage.GetShipInfo(x, y);
-
-            Debug.Log("Outlining");
-            ShipsInfoStorage.DelineateArea(damagedShip, DelineateShip);
-        }
+            ShipsInfoStorage.DelineateArea(shipsInfoStorage.GetShipInfo(x, y), 
+                DelineateShip);
         return result;
     }
 
@@ -51,28 +39,8 @@ public class EnemyAI1 : IAttacker
     {
         var rangeIndex = Random.Range(0, emptyCellsRanges.Count);
         selectedRange = emptyCellsRanges[rangeIndex];
-
         var result = Random.Range(selectedRange[0], selectedRange[1]);
-        UnityEditor.EditorApplication.isPaused = true;
-
-
-        Debug.Log(result + $" SELECTED in range # {selectedRange[0]} - {selectedRange[1]}" +
-            $" among " +            emptyCellsRanges.Count + " total");
-
         SplitRangeByHalf(result);
-        if (indexes.Contains(result))
-        {
-            Debug.LogError("REPEATED INDEX");
-            foreach (var item in emptyCellsRanges)
-            {
-                Debug.Log($"{item[0]} - {item[1]}");
-            }
-
-
-            throw new System.Exception(result + " repeated");
-        }
-        indexes.Add(result);
-
         return result;
     }
 
@@ -80,45 +48,19 @@ public class EnemyAI1 : IAttacker
     {
         var range = selectedRange;
         emptyCellsRanges.Remove(range);
-        Debug.Log($"range {range[0]} {range[1]}, point {point}");
-        var before = new int[] { range[0], point };
-        var after = new int[] { point + 1, range[1] };
-        if (range[0] < point)
-        {
-            emptyCellsRanges.Add(before);
-            Debug.Log($"and {before[0]} {before[1]}");
-        }
+        if (range[0] < point) emptyCellsRanges.Add(new int[] { range[0], point });
         if (range[1] == point + 1) return;
-        emptyCellsRanges.Add(after);
-        Debug.Log($"and {after[0]} {after[1]}");
+        emptyCellsRanges.Add(new int[] { point + 1, range[1] });
     }
 
     protected virtual void DelineateShip(int x, int y)
     {
-
-        if (!Settings.IsPointWithinMatrix(x, y, gameField))
-        {
-            Debug.LogWarning($"{x} {y} is not in matrix");
-            return;
-        }
+        if (!Settings.IsPointWithinMatrix(x, y, gameField)) return;
         gameField[x, y] = GameField.CellState.Misdelivered;
         var linearCoord = Settings
             .ConvertDecartCoordinatesToLinear(x, y, gameField.GetLength(0));
         selectedRange = FindRangeContainingNum(linearCoord);
-        if (selectedRange != null)
-        {
-            Debug.LogWarning($"floor outlining at {linearCoord}");
-            SplitRangeByHalf(linearCoord);
-        }
-        else if (Settings.IsPointWithinMatrix(x, y, gameField))
-        {
-            //Debug.Log($"point {x} {y}");
-            //foreach (var item in emptyCellsRanges)
-            //{
-            //    Debug.Log($"{item[0]} - {item[1]}");
-            //}
-            //throw new System.Exception();
-        }
+        if (selectedRange != null) SplitRangeByHalf(linearCoord);
     }
 
     int[] FindRangeContainingNum(int number)

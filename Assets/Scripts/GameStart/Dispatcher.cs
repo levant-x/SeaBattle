@@ -25,9 +25,11 @@ public class Dispatcher : MonoBehaviour
         if (!isWorkingInstance) FillLabelsDict();
         if (!isAutoLocation) allShips.Add(this);
         
-        var shipsOfKindToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
+        var shipKindCounter = 5 - int.Parse(dictKey.Replace("Ship-", null));
         if (!shipsLeftToAllocate.ContainsKey(dictKey))
-            shipsLeftToAllocate.Add(dictKey, shipsOfKindToAllocate);
+            shipsLeftToAllocate.Add(dictKey, shipKindCounter);
+        //else if (shipsLeftToAllocate[dictKey] == 0)
+        //    shipsLeftToAllocate[dictKey] = shipKindCounter;
         RefreshLabel();
     }
 
@@ -73,7 +75,9 @@ public class Dispatcher : MonoBehaviour
     void FillLabelsDict()
     {
         var textBlock = GameObject.Find(dictKey + " label").GetComponent<Text>();
-        shipsLabels.Add(textBlock.name.Replace(" label", null), textBlock);
+        var labelKey = textBlock.name.Replace(" label", null);
+        if (shipsLabels.ContainsKey(labelKey)) return;
+        shipsLabels.Add(labelKey, textBlock);
     }
 
     protected void OnShipClick()

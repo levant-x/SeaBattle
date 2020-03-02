@@ -4,56 +4,56 @@ using UnityEngine;
 
 public class ShipBattleInfo 
 {
-    Dictionary<Vector2, bool> hitFloors = new Dictionary<Vector2, bool>();
-    int totalFloorsCount = 1;
+    List<Vector2> floors = new List<Vector2>();
+    int initialFloorsCount = 1;
 
     public Vector2 clearAreaStart { get; protected set; }
     public Vector2 clearAreaEnd { get; protected set; }
     public Vector2 position { get; protected set; }
-    public int floorsCount { get; protected set; } = 1;
+    public int leftFloorsCount { get; protected set; } = 1;
 
 
     public ShipBattleInfo(int x, int y, bool isDamaged = false)
     {
         var newFloorPos = new Vector2(x, y);
         clearAreaStart = clearAreaEnd = position = newFloorPos;
-        clearAreaEnd += Vector2.up + Vector2.right;
         clearAreaStart += Vector2.down + Vector2.left;
-
-        Debug.Log($"new info created {this}");
-        hitFloors.Add(newFloorPos, isDamaged);
+        clearAreaEnd += Vector2.up + Vector2.right;
+        floors.Add(newFloorPos);
     }
 
     public void MergeAnotherShipInfo(ShipBattleInfo another)
     {
-        Debug.Log($"merging {another} by {this}");
+        floors.AddRange(another.floors);
+        leftFloorsCount += another.leftFloorsCount;
+        initialFloorsCount += another.initialFloorsCount;
 
-
-        foreach (var floor in another.hitFloors)
-            hitFloors.Add(floor.Key, floor.Value);
-        floorsCount += another.floorsCount;
-        totalFloorsCount += another.totalFloorsCount;
         if (Is1stLessThan2nd(another.clearAreaStart, clearAreaStart))
             clearAreaStart = another.clearAreaStart;
         else clearAreaEnd = another.clearAreaEnd;
     }
 
+    public Vector2[] GetAllFloors()
+    {
+        var result = new Vector2[floors.Count];
+        floors.CopyTo(result);
+        return result;
+    }
+
     bool Is1stLessThan2nd(Vector2 a, Vector2 b)
     {
-        return a.x < b.x || a.y < b.y;
+        return a.x < b.x ^ a.y < b.y;
     }
 
     public void HitFloor(int x, int y)
     {
-        var floorNormalPos = new Vector2(x, y);
-        hitFloors[floorNormalPos] = true;
-        floorsCount--;
+        leftFloorsCount--;
     }
 
     public override string ToString()
     {
         var result = $"{base.ToString()} {clearAreaStart} ";
-        result = $"{result} {clearAreaEnd} : {totalFloorsCount} floor(s)";
-        return result;
+        result = $"{result} {clearAreaEnd} : {initialFloorsCount} floor(s), ";
+        return result + leftFloorsCount + " left";
     }
 }

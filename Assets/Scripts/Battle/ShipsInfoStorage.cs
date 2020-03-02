@@ -6,8 +6,6 @@ using UnityEngine;
 public class ShipsInfoStorage 
 {
     protected Dictionary<Vector2, ShipBattleInfo> navy = new Dictionary<Vector2, ShipBattleInfo>();
-    Vector2[] searchDirections = new Vector2[]
-    { Vector2.left, Vector2.up, Vector2.right, Vector2.down };
     ShipBattleInfo newFloorInfo;
 
 
@@ -15,34 +13,29 @@ public class ShipsInfoStorage
     {
         newFloorInfo = new ShipBattleInfo(x, y, isDamaged);
         var newFloorPos = new Vector2(x, y);
-        //foreach (var existingFloorPos in navy.Keys)
-            SearchForNearbyFloors(newFloorPos); 
-
+        SearchForNearbyFloors(newFloorPos); 
         navy.Add(newFloorPos, newFloorInfo);
     }
 
     void SearchForNearbyFloors(Vector2 newFloorPos)
     {
-        foreach (var dir in searchDirections)
-            CheckNearbyFloor(new Vector2(newFloorPos.x, newFloorPos.y)
-                + dir, newFloorPos);
+        CheckNearbyFloor(newFloorPos + Vector2.left, newFloorPos);
+        CheckNearbyFloor(newFloorPos + Vector2.up, newFloorPos);
+        CheckNearbyFloor(newFloorPos + Vector2.right, newFloorPos);
+        CheckNearbyFloor(newFloorPos + Vector2.down, newFloorPos);            
     }
 
     void CheckNearbyFloor(Vector2 nearbyFloorPos, Vector2 newFloorPos)
     {
         var isNeighbour = navy.ContainsKey(nearbyFloorPos);
-            //&&             !navy[nearbyFloorPos].Equals(newFloorInfo);
-
-        Debug.Log($"floor by {nearbyFloorPos} isNeighbour= {isNeighbour}");
         if (isNeighbour) MergeFloors(nearbyFloorPos);
     }
 
     void MergeFloors(Vector2 existingFloorPos)
     {
         newFloorInfo.MergeAnotherShipInfo(navy[existingFloorPos]);
-        navy[existingFloorPos] = newFloorInfo;
-
-        Debug.Log($"new ship after merging {newFloorInfo}");
+        var floorsToRebind = navy[existingFloorPos].GetAllFloors();
+        foreach (var floorPos in floorsToRebind) navy[floorPos] = newFloorInfo;
     }
 
     ShipBattleInfo TryGetShip(Vector2 key)
@@ -59,7 +52,7 @@ public class ShipsInfoStorage
     public bool AreAllShipsSunk()
     {
         foreach (var shipInfo in navy.Values)
-            if (shipInfo.floorsCount > 0) return false;
+            if (shipInfo.leftFloorsCount > 0) return false;
         return true;
     }
 
@@ -67,7 +60,6 @@ public class ShipsInfoStorage
     {
         Vector2 start = ship.clearAreaStart, end = ship.clearAreaEnd;
         Vector2 direction = Vector2.up, cursor = start;
-        Debug.Log(ship);
         do
         {      
             target((int)cursor.x, (int)cursor.y);
