@@ -9,61 +9,59 @@ public class GameField : MonoBehaviour
     {
         Empty, Misdelivered, Occupied, Hit
     }
-
-
+    
     public GameObject cellPrefab;
-    public float bottomLeftX;
-    public float bottomLeftY;
+    public Vector2 bottomLeftCorner;
     public bool toAdjustOrigin = false;
     public static float cellToCamHeightProportion = 1 / 11f;
+    //public static GameField singleton;
 
-    protected static CellState[,] body = new CellState[10, 8];
-    protected static Bounds[,] boundsOfCells;
-    protected static float cellSize;
-    protected static string originObjName = "GameFieldOrigin";
+    protected CellState[,] body = new CellState[10, 8];
+    protected Bounds[,] boundsOfCells;
+    protected float cellSize;
+    protected string originObjName = "GameFieldOrigin";
 
     GameObject origin;
-    static Vector2 bottomLeftCorner;
-
+    static CellState cellStateToSet;
 
     // Start is called before the first frame update
     protected virtual void Start()
     {
+        Ship.gameField = this;
         origin = GameObject.Find(originObjName);
-        origin.transform.position = new Vector3(bottomLeftX, bottomLeftY);
+        origin.transform.position = bottomLeftCorner;
 
         var sprRenderer = cellPrefab.GetComponent<SpriteRenderer>();
-        Settings.ScaleSpriteByY(sprRenderer, cellToCamHeightProportion, out cellSize);
+        Settings.ScaleSpriteByY(sprRenderer, cellToCamHeightProportion,
+            out cellSize);
         GenerateField();
         bottomLeftCorner = boundsOfCells[0, 0].min;
-
     }
-
-    // Update is called once per frame
-    void Update()
+    
+    void FixedUpdate()
     {
         if (!toAdjustOrigin) return;
-        var originPosition = new Vector2(bottomLeftX, bottomLeftY);
+        var originPosition = bottomLeftCorner;
         origin.transform.position = originPosition;
     }
 
     void GenerateField()
     {
         boundsOfCells = new Bounds[Width(), Height()];
-        for (int i = 0; i < Width(); i++)
-        {
-            GenerateFieldColumn(i);
-        }
+        for (int x = 0; x < Width(); x++) GenerateFieldColumn(x);
     }
 
-    void GenerateFieldColumn(int i)
+    void GenerateFieldColumn(int x)
     {
-        for (int j = 0; j < Height(); j++)
-        {
-            var cellPos = new Vector2(bottomLeftX + i * cellSize, bottomLeftY + j * cellSize);
-            var cell = Instantiate(cellPrefab, cellPos, Quaternion.identity);
-            OnCellGenerated(i, j, cell);
-        }
+        for (int y = 0; y < Height(); y++) GenerateCell(x, y);
+    }
+
+    void GenerateCell(int x, int y)
+    {
+        var cellPos = new Vector2(bottomLeftCorner.x + x * cellSize,
+            bottomLeftCorner.y + y * cellSize);
+        var cell = Instantiate(cellPrefab, cellPos, Quaternion.identity);
+        OnCellGenerated(x, y, cell);
     }
 
     protected virtual void OnCellGenerated(int i, int j, GameObject cell)
@@ -73,17 +71,17 @@ public class GameField : MonoBehaviour
         body[i, j] = (int)CellState.Empty;
     }
 
-    protected static int Width()
+    public int Width()
     {
         return body.GetLength(0);
     }
 
-    protected static int Height()
+    public int Height()
     {
         return body.GetLength(1);
     }
 
-    public static void CheckLocationOverField(Vector3 mousePos, Ship ship)
+    public void CheckLocationOverField(Vector3 mousePos, Ship ship)
     {
         var upperRightBounds = boundsOfCells[Width() - 1, Height() - 1].max;
         var isShipOverField = mousePos.x > bottomLeftCorner.x && 
@@ -101,89 +99,96 @@ public class GameField : MonoBehaviour
         int x = (int)cellMatrixPos.x, y = (int)cellMatrixPos.y;
         ship.isWithinCell = true;
         ship.cellCenterPosition = boundsOfCells[x, y].center;
-        ship.isPositionCorrect = IsLocationAppropriate(ship, x, y);
+        ship.isPositionCorrect = IsShipPositionAppropriate(ship, x, y);
 
         //if (ship.isPositionCorrect) Debug.Log("correct!");
     }
 
-    static bool IsLocationAppropriate(Ship ship, int x, int y)
+    bool IsShipPositionAppropriate(Ship ship, int x, int y)
     {
         for (int i = 0; i < ship.floorsNum; i++)
-        {
-            if (!AreSurroundingCellsEmpty(ship, x, y))
+            if (IsCellLocationAppropriate(ship, ref x, ref y))
                 return false;
-            if (ship.orientation == Ship.Orientation.Horizontal) x++;
-            else y--;
-        }
         return true;
     }
 
-    static bool AreSurroundingCellsEmpty(Ship ship, int x, int y)
+    bool IsCellLocationAppropriate(Ship ship, ref int x, ref int y)
+    {
+        if (!AreSurroundingCellsEmpty(ship, x, y))
+            return false;
+        ShiftCoordinate(ship, ref x, ref y);
+        return true;
+    }
+
+    void ShiftCoordinate(Ship ship, ref int x, ref int y)
+    {
+        if (ship.orientation == Ship.Orientation.Horizontal) x++;
+        else y--;
+    }
+
+    bool AreSurroundingCellsEmpty(Ship ship, int x, int y)
     {
         if (!IsPointWithinMatrix(x, y)) return false;
-        var dx = new int[] { 1, 1, 0, -1, -1, -1, 0, 1, 0 }; // to check surrounding cells
+        // to check surrounding cells
+        var dx = new int[] { 1, 1, 0, -1, -1, -1, 0, 1, 0 }; 
         var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
         for (int j = 0; j < 9; j++)
-        {
-            int shiftX = x + dx[j], shiftY = y + dy[j];
-            var isPosAppropr = !IsPointWithinMatrix(shiftX, shiftY) ||
-                body[shiftX, shiftY] != CellState.Occupied;
-            if (!isPosAppropr) return false;
-        }
+            if (!IsSurroundingCellEmpty(x + dx[j], y + dy[j]))
+                return false;
         return true;
     }
 
-    protected static bool IsPointWithinMatrix(int x, int y)
+    bool IsSurroundingCellEmpty(int shiftX, int shiftY)
     {
-        return x >= 0 && x < Width() && y >= 0 && y < Height();
+        var isPosAppropr = !IsPointWithinMatrix(shiftX, shiftY) ||
+            body[shiftX, shiftY] != CellState.Occupied;
+        if (!isPosAppropr) return false;
+        else return true;
     }
 
-    public static void MarkShipCellsAsOccupied(Ship ship)
+    public bool IsPointWithinMatrix(int x, int y)
     {
-        SetCellsStateUnderneathShip(ship, CellState.Occupied);        
-        //Debug.Log("SET");
-        //Debug.Log(GetCellMatrixPos(ship.cellCenterPosition));
+        return Settings.IsPointWithinMatrix(x, y, body);
     }
 
-    public static void TakeShipOff(Ship ship)
+    public void MarkShipCellsAsOccupied(Ship ship)
+    {
+        SetCellsStateUnderneathShip(ship, CellState.Occupied);
+    }
+
+    public void TakeShipOff(Ship ship)
     {
         SetCellsStateUnderneathShip(ship, CellState.Empty);
-        //Debug.Log("TAKEN off");
     }
 
-    static void SetCellsStateUnderneathShip(Ship ship, CellState cellState)
+    void SetCellsStateUnderneathShip(Ship ship, CellState cellState)
     {
+        cellStateToSet = cellState;
         var cellNormalPos = GetCellMatrixPos(ship.cellCenterPosition);
         int x = (int)cellNormalPos.x, y = (int)cellNormalPos.y;
-        if (!IsPointWithinMatrix(x, y)) throw new System.Exception("Cell center incorrect");
-
-
-
-        Debug.Log(x + " :: " + y);
-        Debug.Log("MARKING SHIP CELL for " + ship.name + " , floors " + ship.floorsNum);
-
-
-        for (int i = 0; i < ship.floorsNum; i++)
-        {
-            body[x, y] = cellState;
-            if (ship.orientation == Ship.Orientation.Horizontal) x++;
-            else y--;
-        }
-
-
-
-        //for (int i = Height() - 1; i >= 0; i--) // Displaying field matrix
-        //{
-        //    var line = "";
-        //    for (int j = 0; j < Width(); j++)
-        //    {
-        //        line += body[j, i] + "  ";
-        //    }
-        //    Debug.Log(line);
-        //}
+        for (int i = 0; i < ship.floorsNum; i++) SetCellState(ship, ref x, ref y);
     }
 
-    protected static Vector2 GetCellMatrixPos(Vector2 pointInField)
+    void SetCellState(Ship ship, ref int x, ref int y)
+    {
+        body[x, y] = cellStateToSet;
+        ShiftCoordinate(ship, ref x, ref y);
+    }
+
+    public void PrintField(CellState[,] fliel)
+    {
+        for (int i = Height() - 1; i >= 0; i--) // Displaying field matrix
+        {
+            var line = "";
+            for (int j = 0; j < Width(); j++)
+            {
+                line += (int)fliel[j, i] + "  ";
+            }
+            Debug.Log(line);
+        }
+    }
+
+    protected Vector2 GetCellMatrixPos(Vector2 pointInField)
     {
         var dx = pointInField.x - bottomLeftCorner.x;
         var dy = pointInField.y - bottomLeftCorner.y;

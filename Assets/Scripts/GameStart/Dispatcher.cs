@@ -25,12 +25,9 @@ public class Dispatcher : MonoBehaviour
         if (!isWorkingInstance) FillLabelsDict();
         if (!isAutoLocation) allShips.Add(this);
         
-
         var shipsOfKindToAllocate = 5 - int.Parse(dictKey.Replace("Ship-", null));
         if (!shipsLeftToAllocate.ContainsKey(dictKey))
-        {
             shipsLeftToAllocate.Add(dictKey, shipsOfKindToAllocate);
-        }
         RefreshLabel();
     }
 
@@ -81,30 +78,33 @@ public class Dispatcher : MonoBehaviour
 
     protected void OnShipClick()
     {
-        if (isWorkingInstance) // ship on the field
-        {
-            OnWorkingShipClick();
-        }
-        else if (currentShip == null) // sample template
-        {
-            if (shipsLeftToAllocate[dictKey] == 0) return;
-            var shipObjToPlay = Instantiate(shipPrefab, transform.parent.transform);
-            currentShip = shipObjToPlay.GetComponentInChildren<Ship>();
-        }
+        if (isWorkingInstance) TakeShipOrChangePosition();
+        else if (currentShip == null) CreateWorkingInstance();
     }
 
-    void OnWorkingShipClick()
+    void CreateWorkingInstance()
     {
-        if (currentShip == null)
-        {
-            currentShip = GetComponentInChildren<Ship>();
-        }
-        else if (currentShip.isPositionCorrect)
-        {
-            if (!currentShip.wasAllocatedOnce) shipsLeftToAllocate[dictKey]--;
-            RefreshLabel();
-            currentShip = null;
-        }
+        if (shipsLeftToAllocate[dictKey] == 0) return;
+        var shipObjToPlay = Instantiate(shipPrefab, transform.parent.transform);
+        currentShip = shipObjToPlay.GetComponentInChildren<Ship>();
+    }
+
+    void TakeShipOrChangePosition()
+    {
+        if (currentShip == null) TakeShipOff();
+        else if (currentShip.isPositionCorrect) PlaceShip();
+    }
+
+    void TakeShipOff()
+    {
+        currentShip = GetComponentInChildren<Ship>();
+    }
+
+    void PlaceShip()
+    {
+        if (!currentShip.wasAllocatedOnce) shipsLeftToAllocate[dictKey]--;
+        RefreshLabel();
+        currentShip = null;
     }
 
     void RefreshLabel()

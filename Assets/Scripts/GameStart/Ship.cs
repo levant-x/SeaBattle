@@ -13,20 +13,19 @@ public class Ship : Dispatcher
     public Orientation orientation = Orientation.Horizontal;
     public GameObject floorButtonPref;
 
+    public static GameField gameField { get; set; }
     public Vector3 cellCenterPosition { get; set; }
     public bool isWithinCell { get; set; } = false;
     public bool isPositionCorrect { get; set; } = false;
+    public bool wasAllocatedOnce { get; protected set; } = false;
+    public int floorsNum { get; protected set; }
 
     Vector3 lastPos, floorPos;
-    // first - to set initial angle
-    Orientation firstOrientation, lastOrientation;
+    Orientation firstOrientation, lastOrientation; // first - to set initial angle
     Animator[] animators;
     Transform floor;
     bool toMove = false;
     float rotAngle, floorSize;
-
-    public bool wasAllocatedOnce { get; protected set; } = false;
-    public int floorsNum { get; protected set; }
 
     // Start is called before the first frame update
     protected override void Start()
@@ -38,14 +37,13 @@ public class Ship : Dispatcher
         firstOrientation = lastOrientation = orientation;
         floorsNum = transform.childCount;
         animators = new Animator[floorsNum];
-
         for (int i = 0; i < floorsNum; i++)
         {
             floor = transform.GetChild(i);
             floorPos = transform.position;
             var floorSprRenderer = floor.GetComponent<SpriteRenderer>();
-            Settings.ScaleSpriteByY(floorSprRenderer, GameField.cellToCamHeightProportion,
-                out floorSize);
+            Settings.ScaleSpriteByY(floorSprRenderer, 
+                GameField.cellToCamHeightProportion, out floorSize);
             ShiftFloor(i);
             CreateFloorButton();
         }
@@ -87,7 +85,7 @@ public class Ship : Dispatcher
 
         var mousePos = Input.mousePosition;
         mousePos = Camera.main.ScreenToWorldPoint(mousePos);
-        GameField.CheckLocationOverField(mousePos, this);        
+        gameField.CheckLocationOverField(mousePos, this);        
         mousePos.z = transform.position.z;
         transform.position = mousePos;
         if (isWithinCell) transform.position = cellCenterPosition;
@@ -106,7 +104,7 @@ public class Ship : Dispatcher
     {
         transform.position = cellCenterPosition = lastPos;
         if (orientation != lastOrientation) Rotate();
-        GameField.MarkShipCellsAsOccupied(this);
+        gameField.MarkShipCellsAsOccupied(this);
         isPositionCorrect = isWithinCell = true;
     }
 
@@ -117,9 +115,9 @@ public class Ship : Dispatcher
         {
             if (!isPositionCorrect) return;
             RememberPositionAndRotation();
-            GameField.MarkShipCellsAsOccupied(this);
+            gameField.MarkShipCellsAsOccupied(this);
         }
-        else if (wasAllocatedOnce) GameField.TakeShipOff(this);
+        else if (wasAllocatedOnce) gameField.TakeShipOff(this);
         OnShipClick();
         wasAllocatedOnce = true;
     }
@@ -145,14 +143,13 @@ public class Ship : Dispatcher
         {
             orientation = lastOrientation;
             Rotate();
-            Debug.Log($"ship {name} rotated to {orientation} by {rotAngle}");
         }
         RememberPositionAndRotation();
         isPositionCorrect = wasAllocatedOnce = true;
     }
 
     void SwitchPlacementAnimation()
-    {
+    {        
         foreach (var animator in animators)
         {
             animator.SetBool("IsMisplaced", !isPositionCorrect);

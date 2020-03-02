@@ -1,135 +1,143 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerGameField : GameField
 {
-    protected enum AttackResult
+    public enum AttackResult
     {
         Misdelivered, Hit, Sunk, Error
     }
 
     protected Animator[,] cellsAnimators;
-    protected bool[,] hitCells = new bool[Width(), Height()];
+    protected ShipsInfoStorage shipsInfoStorage = new ShipsInfoStorage();
+    protected bool discloseFloorCells = true;
+
     protected static PlayerGameField currentPlayer;
-    protected Dictionary<Vector2, ShipBattleInfo> navy = new Dictionary<Vector2, ShipBattleInfo>();
-    bool makeFloorCellVisible = true;
+    protected PlayerGameField enemy = null;
+    protected static bool hasBeenInput = false;
+    protected static int targetX, targetY;
 
-    static PlayerGameField thisInstance;
 
-    CellState[,] r = body.Clone() as CellState[,];
-
+    public PlayerGameField()
+    {
+        originObjName = GetType().Name + "Origin";
+        Debug.Log(originObjName);
+        cellsAnimators = new Animator[Width(), Height()];
+    }
+    
     protected override void Start()
     {
-        thisInstance = this;
-
-        for (int i = 0; i < 20; i++)
-        {
-            int x = Random.Range(0, Width()), y = Random.Range(0, Height());
-            r[x, y] = CellState.Occupied;
-            
-        }    
-        
-
-        cellsAnimators = new Animator[Width(), Height()];
-        originObjName = "PlayerGameField";
         if (Camera.main.aspect < 2)
             cellToCamHeightProportion = Camera.main.aspect / 22f;
-        base.Start(); 
+        Settings.enemyInitialized += OnEnemyInitialized;
+        Settings.RegisterGameField(this);
+        base.Start();
     }
 
-    protected override void OnCellGenerated(int i, int j, GameObject cell)
+    protected void OnEnemyInitialized(PlayerGameField gameField)
     {
-        base.OnCellGenerated(i, j, cell);
-        body[i, j] = r[i, j];
+        if (gameField.GetType() != GetType()) RegisterEnemy(gameField);
+    }
+
+    void RegisterEnemy(PlayerGameField gameField)
+    {
+        enemy = gameField;
+        if (this is EnemyGameField) currentPlayer = this;
+    }
+
+    protected override void OnCellGenerated(int x, int y, GameObject cell)
+    {
+        base.OnCellGenerated(x, y, cell);
         var cellAnimator = cell.GetComponent<Animator>();
-        cellsAnimators[i, j] = cellAnimator;
-        if (body[i, j] == CellState.Occupied)
-        {
-            RegisterShip(i, j);
-            if (makeFloorCellVisible) cellAnimator.SetTrigger($"{CellState.Occupied}");
-        }
+        cellsAnimators[x, y] = cellAnimator;
+        body[x, y] = GetCellValue(x, y);
+        if (body[x, y] == CellState.Occupied) GenerateFloor(x, y, cellAnimator);
     }
 
-    private void RegisterShip(int i, int j)
+    void GenerateFloor(int x, int y, Animator animator)
     {
-        var floorPos = new Vector2(i, j);
-        ShipBattleInfo shipBattleInfo = TryGetShip(i - 1, j);
-        if (shipBattleInfo == null) shipBattleInfo = TryGetShip(i, j - 1); 
-
-        if (shipBattleInfo != null) shipBattleInfo.AddFloor(floorPos);
-        else shipBattleInfo = new ShipBattleInfo(i, j);
-        navy.Add(floorPos, shipBattleInfo);        
+        shipsInfoStorage.RegisterShipFloor(x, y);
+        if (discloseFloorCells) animator.SetTrigger($"{CellState.Occupied}");
     }
 
-    ShipBattleInfo TryGetShip(int x, int y)
+    protected virtual CellState GetCellValue(int x, int y)
     {
-        navy.TryGetValue(new Vector2(x, y), out ShipBattleInfo result);
-        return result;
+        return Settings.playerField[x, y];
     }
 
-    protected AttackResult Attack(int x, int y)
+    public AttackResult Attack(int x, int y)
     {
+        //Debug.Log(GetType() + " attacked by enemy " + enemy.GetType().Name);
+
         var result = AttackResult.Error;
-        if (currentPlayer == this || hitCells[x, y]) return result;
-        if (body[x, y] == (int)CellState.Empty)
+        if (!CanReceiveAttack(x, y)) return result; 
+        if (body[x, y] == CellState.Empty) body[x, y] = CellState.Misdelivered;
+        else body[x, y] = CellState.Hit;
+
+        result = (AttackResult)Enum.Parse(typeof(AttackResult), $"{body[x, y]}");
+        var animTrigger = result;
+        if (result == AttackResult.Hit)
         {
-            body[x, y] = CellState.Misdelivered;
-            result = AttackResult.Misdelivered;
+            result = DamageShip(x, y);
+            if (shipsInfoStorage.AreAllShipsSunk()) GameOver();
         }
         else
         {
-            body[x, y] = CellState.Hit;
-            result = AttackResult.Hit;
-        }
+            //Debug.Log(currentPlayer.GetType() + " was current ");
+            //Debug.Log(enemy.GetType() + " is enemy");
 
-        if (result == AttackResult.Hit) DamageShip(x, y, result);
-        cellsAnimators[x, y].SetTrigger(result.ToString());
+            //currentPlayer = this;
+
+            //Debug.Log(currentPlayer.GetType() + " plays now");
+        }
+        cellsAnimators[x, y].SetTrigger(animTrigger.ToString());
+        return result;
+    }
+    
+    protected bool CanReceiveAttack(int x, int y)
+    {
+        var result = !Equals(currentPlayer) &&
+            body[x, y] != CellState.Hit && body[x, y] != CellState.Misdelivered;
         return result;
     }
 
-    void DamageShip(int x, int y, AttackResult attackResult)
+    AttackResult DamageShip(int x, int y)
     {
-        var damagedShip = navy[new Vector2(x, y)];
+        var damagedShip = shipsInfoStorage.GetShipInfo(x, y);
         damagedShip.HitFloor(x, y);
         if (damagedShip.floorsCount == 0)
         {
-            attackResult = AttackResult.Sunk;
-            DelineateShip(damagedShip.clearAreaStart, damagedShip.clearAreaEnd);
+            ShipsInfoStorage.DelineateArea(damagedShip, MarkCell);
+            ShipsInfoStorage.DelineateArea(damagedShip, AnimateCell);
+            return AttackResult.Sunk;
         }
+        else return AttackResult.Hit;
     }
 
-    void DelineateShip(Vector2 start, Vector2 end)
+    protected void MarkCell(int x, int y)
     {
-        // посмотреть ечейки выше, ниже, левее, правее
-
-        int startY = (int)start.y, endY = (int)end.y, startX = (int)start.x;
-        bool toSkipMiddleHere = end.x - start.x == 3;
-        for (int x = startX; x <= end.x; x++)
-        {
-            if (toSkipMiddleHere && x == (int)start.x + 1) continue;
-            DelineateShipHorizontally(x, startY, endY, !toSkipMiddleHere);
-        }
+        if (!IsPointWithinMatrix(x, y) || body[x, y] == CellState.Misdelivered) return;
+        body[x, y] = CellState.Misdelivered;
     }
 
-    void DelineateShipHorizontally(int x, int startY, int endY, bool toSkipMiddle)
+    protected void AnimateCell(int x, int y)
     {
-        //for (int y = startY; y <= endY; y++)
-        //{
-        //    if (toSkipMiddle && y == startY + 1) continue;
-        //    else if (body[y, y] != (int)CellState.Empty) continue;
-        //    body[y, y] = (int)CellState.Misdelivered;
-        //    cellsAnimators[y, y].SetTrigger(CellState.Misdelivered.ToString());
-        //}
+        if (!IsPointWithinMatrix(x, y)) return;
+        cellsAnimators[x, y].SetTrigger($"{CellState.Misdelivered}");
+    } 
+    
+    protected void GameOver()
+    {
+
     }
 
-
-
-    public static void OnCellClick(GameObject cell)
+    void FixedUpdate()
     {
-        var normalPos = GetCellMatrixPos(cell.transform.position);
-        Debug.Log(normalPos);
-        var r = thisInstance.Attack((int)normalPos.x, (int)normalPos.y);
-        Debug.Log(r);
+        if (Settings.isMultiplayerMode || !hasBeenInput) return;
+        Debug.Log(enemy.Attack(targetX, targetY));
+        hasBeenInput = false;
+        Debug.Log("input switched");
     }
 }

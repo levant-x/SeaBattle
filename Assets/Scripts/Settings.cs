@@ -7,29 +7,33 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static GameField;
 
-public class Settings : MonoBehaviour
+public static class Settings
 {
-    public static CellState[,] PlayerField;
-    public static CellState[,] EnemyField;
+    public enum CompexityLevel
+    {
+        Easy, Normal, Hard
+    }
 
-    static GameObject[] sprites;
-    static Settings instance;
+    public static event Action<PlayerGameField> enemyInitialized;
+    public static CellState[,] playerField { get; set; }
+    public static CellState[,] enemyField { get; set; }
+    public static CompexityLevel compexityLevel { get; set; }
+    public static bool isMultiplayerMode { get; set; }
+    public static IAttacker attacker { get; private set; }
+
+    static List<PlayerGameField> gameFields = new List<PlayerGameField>(2);
 
     static Settings()
     {
-        SceneManager.activeSceneChanged += OnActiveSceneChanged;
+        compexityLevel = CompexityLevel.Normal;
     }
 
-    private Settings()
+    public static void ChangeScene(string sceneName)
     {
-        instance = this;
-    }
 
-    static void OnActiveSceneChanged(Scene previousScene, Scene currentScene)
-    {
-        //Debug.Log(previousScene.name);
-        //Debug.Log(currentScene.name);
-        //Do();
+        Debug.Log(sceneName + " requested");
+        if (sceneName == "Battle") SetComplexityLevel();
+        SceneManager.LoadScene(sceneName);
     }
 
     public static void ScaleSpriteByY(SpriteRenderer sr, float yScale, out float spriteSize)
@@ -41,22 +45,31 @@ public class Settings : MonoBehaviour
         spriteSize = sr.bounds.size.x;
     }
 
-    static void Do()
+    public static void RegisterGameField(PlayerGameField gameField)
     {
-        var path = Path.GetFullPath("Assets/Sprites");
-        var dirInfo = new DirectoryInfo(path);
-        var files = dirInfo.GetFiles("*.png");
-        foreach (var item in files)
-        {
-            var b = File.ReadAllBytes(item.FullName);
-            //Debug.Log(item.FullName);
-            //var g = GameObject.Find(item.FullName);
-            Debug.Log(b);
-            var t = Texture2D.whiteTexture;
-            t.LoadImage(b);
+        gameFields.Add(gameField);
+        foreach (var field in gameFields) enemyInitialized(field);
+    }
 
+    public static Vector2 ConvertLinearCoordinateToDecart(int i, int width, int height)
+    {
+        return new Vector2(i % width, i / width);
+    }
 
-            Sprite sprite = Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0, 0), 32f);
-        }
+    public static int ConvertDecartCoordinatesToLinear(int x, int y, int width)
+    {
+        return y * width + x;
+    }
+
+    public static bool IsPointWithinMatrix<T>(int x, int y, T[,] matrix)
+    {
+        int width = matrix.GetLength(0), height = matrix.GetLength(1);
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
+
+    static void SetComplexityLevel()
+    {
+        if (compexityLevel == CompexityLevel.Easy) attacker = new EnemyAI1();
+        else if (compexityLevel == CompexityLevel.Normal) attacker = new EnemyAI2();
     }
 }

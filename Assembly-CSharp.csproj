@@ -54,13 +54,18 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\Scripts\Battle\BattleCell.cs" />
+     <Compile Include="Assets\Scripts\Battle\EnemyGameField.cs" />
      <Compile Include="Assets\Scripts\Battle\PlayerGameField.cs" />
      <Compile Include="Assets\Scripts\Battle\ShipBattleInfo.cs" />
+     <Compile Include="Assets\Scripts\Battle\ShipsInfoStorage.cs" />
+     <Compile Include="Assets\Scripts\EnemyAI1.cs" />
+     <Compile Include="Assets\Scripts\EnemyAI2.cs" />
      <Compile Include="Assets\Scripts\GameStart\AutoAllocator.cs" />
      <Compile Include="Assets\Scripts\GameStart\Dispatcher.cs" />
      <Compile Include="Assets\Scripts\GameStart\GameField.cs" />
      <Compile Include="Assets\Scripts\GameStart\GameLauncher.cs" />
      <Compile Include="Assets\Scripts\GameStart\Ship.cs" />
+     <Compile Include="Assets\Scripts\IAttacker.cs" />
      <Compile Include="Assets\Scripts\Settings.cs" />
      <Compile Include="Assets\Scripts\UI\PagesSwitch.cs" />
      <Compile Include="Assets\Scripts\UI\Panel.cs" />

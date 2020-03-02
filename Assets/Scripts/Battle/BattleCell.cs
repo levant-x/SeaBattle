@@ -5,8 +5,10 @@ using UnityEngine.EventSystems;
 
 public class BattleCell : MonoBehaviour, IPointerClickHandler
 {
+    public static event System.Action<GameObject> onCellClick;
+
     public void OnPointerClick(PointerEventData eventData)
     {
-        PlayerGameField.OnCellClick(gameObject);
+        onCellClick?.Invoke(gameObject);
     }
 }

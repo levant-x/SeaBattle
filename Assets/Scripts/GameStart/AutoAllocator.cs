@@ -4,15 +4,16 @@ using UnityEngine;
 
 public class AutoAllocator : GameField
 {
+    public event System.Action autoAllocationCompleted;
+
     List<Bounds> spawnAreas = new List<Bounds>();
     Bounds selectedArea;
     Dispatcher[] playDispatchers;
 
-    
+
     public void OnAutoLocateClick(bool allignAtField = false)
     {
         playDispatchers = Dispatcher.CreateAllShips();
-        Debug.Log(playDispatchers.Length);
         ClearGameField();
         spawnAreas.Add(new Bounds(new Vector3((float)Width() / 2, (float)Height() / 2),
             new Vector3(Width(), Height())));
@@ -21,10 +22,14 @@ public class AutoAllocator : GameField
        
     void ClearGameField()
     {
-        for (int i = 0; i < body.Length; i++)
-        {
-            body[i % Width(), i / Width()] = (int)CellState.Empty;
-        }
+        for (int i = 0; i < body.Length; i++) ClearFieldCell(i);
+    }
+
+    void ClearFieldCell(int i)
+    {
+        var decartCoords = Settings.ConvertLinearCoordinateToDecart(i,
+            Width(), Height());
+        body[(int)decartCoords.x, (int)decartCoords.y] = CellState.Empty;
     }
 
     bool AreAllShipsInitialized()
@@ -44,6 +49,7 @@ public class AutoAllocator : GameField
             if (allignAtField) ship.AutoLocate();
         }
         spawnAreas.Clear();
+        autoAllocationCompleted?.Invoke();
     }
 
     void AutoLocateShip(Ship ship)
