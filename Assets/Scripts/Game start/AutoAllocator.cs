@@ -17,7 +17,7 @@ public class AutoAllocator : GameField
         ClearGameField();
         spawnAreas.Add(new Bounds(new Vector3((float)Width() / 2, (float)Height() / 2),
             new Vector3(Width(), Height())));
-        StartCoroutine(AutoLocateShips(allignAtField));
+        StartCoroutine(AutoLocateAllShips(allignAtField));
     }
        
     void ClearGameField()
@@ -40,13 +40,13 @@ public class AutoAllocator : GameField
         return true;
     }
 
-    IEnumerator AutoLocateShips(bool allignAtField)
+    IEnumerator AutoLocateAllShips(bool allignAtField)
     {
         while (!AreAllShipsInitialized()) yield return null;
         foreach (Ship ship in playDispatchers)
         {
             AutoLocateShip(ship);
-            if (allignAtField) ship.AutoLocate();
+            if (allignAtField) ship.SetAutolocated();
         }
         spawnAreas.Clear();
         autoAllocationCompleted?.Invoke();
@@ -103,7 +103,7 @@ public class AutoAllocator : GameField
         else if (canStandHorizontally && canStandVertically)
         {
             ship.orientation = (Ship.Orientation)Random.Range(0, 2);
-            //Debug.Log("random orient " + ship.orientation);
+            //Debug.Log("random orient " + ship);
         }
         else if (canStandHorizontally) ship.orientation = Ship.Orientation.Horizontal;
         else ship.orientation = Ship.Orientation.Vertical;

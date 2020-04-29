@@ -23,7 +23,6 @@ public class PlayerGameField : GameField
     public PlayerGameField()
     {
         originObjName = GetType().Name + "Origin";
-        Debug.Log(originObjName);
         cellsAnimators = new Animator[Width(), Height()];
     }
     

@@ -6,45 +6,34 @@ using UnityEngine.SceneManagement;
 public class GameLauncher : AutoAllocator
 {
     GameObject errorMessagePanel;
+    bool arePlayerShipsLocated, areEnemyShipsLocated, toLaunchGame;
 
     protected override void Start()
     {
         base.Start();
         autoAllocationCompleted += OnAutoAllocationCompleted;
         errorMessagePanel = transform.Find("ErrorMessagePanel").gameObject;
+        areEnemyShipsLocated = arePlayerShipsLocated = toLaunchGame = false;
     }
-
 
     public void OnGameStartButtonClick()
     {
-        OnAutoLocateClick();
-
-        //if (Dispatcher.AreAllShipsAllocated()) PrepareForGameStart();
-        //else errorMessagePanel.SetActive(true);
-    }
-
-    int a = 0;
-
-    private void OnAutoAllocationCompleted()
-    {
-        if (a == 0)
-        {
-            Settings.playerField = (CellState[,])body.Clone();
-            a++;
-            OnAutoLocateClick();
-            return;
-        }
-        Settings.enemyField = (CellState[,])body.Clone();
-        Settings.ChangeScene("Battle");
+        if (Dispatcher.AreAllShipsAllocated()) PrepareForGameStart();
+        else OnAutoLocateClick();  // errorMessagePanel.SetActive(true);
     }
 
     void PrepareForGameStart()
     {
-
+        if (toLaunchGame) return;
+        toLaunchGame = true;
         Settings.playerField = CloneField();
         OnAutoLocateClick();
+    }
+    
+    private void OnAutoAllocationCompleted()
+    {
+        if (!toLaunchGame) return;
         Settings.enemyField = CloneField();
-        PrintField(body);
         Settings.ChangeScene("Battle");
     }
 

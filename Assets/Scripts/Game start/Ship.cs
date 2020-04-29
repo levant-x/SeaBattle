@@ -10,7 +10,7 @@ public class Ship : Dispatcher
         Horizontal, Vertical
     }
 
-    public Orientation orientation = Orientation.Horizontal;
+    
     public GameObject floorButtonPref;
 
     public static GameField gameField { get; set; }
@@ -19,9 +19,20 @@ public class Ship : Dispatcher
     public bool isPositionCorrect { get; set; } = false;
     public bool wasAllocatedOnce { get; protected set; } = false;
     public int floorsNum { get; protected set; }
+    public Orientation orientation
+    {
+        get => currOrientation;
+        set
+        {
+            if (currOrientation != value) Rotate();
+            currOrientation = value;
+            Debug.Log(this + " rotated");
+        }
+    }
 
     Vector3 lastPos, floorPos;
-    Orientation firstOrientation, lastOrientation; // first - to set initial angle
+    Orientation firstOrientation, lastPosOrientation; // first - to set initial angle
+    Orientation currOrientation = Orientation.Horizontal;
     Animator[] animators;
     Transform floor;
     bool toMove = false;
@@ -31,10 +42,10 @@ public class Ship : Dispatcher
     protected override void Start()
     {
         base.Start();
-        if (orientation == Orientation.Horizontal) rotAngle = 90f;
-        else rotAngle = -90f;
+        if (orientation == Orientation.Horizontal) rotAngle = -90f;
+        else rotAngle = 90f;
         
-        firstOrientation = lastOrientation = orientation;
+        firstOrientation = lastPosOrientation = orientation;
         floorsNum = transform.childCount;
         animators = new Animator[floorsNum];
         for (int i = 0; i < floorsNum; i++)
@@ -96,14 +107,14 @@ public class Ship : Dispatcher
             else Destroy(gameObject);
             currentShip = null;
         }
-        else if (Input.GetKeyUp(KeyCode.Space)) Rotate();
+        else if (Input.GetKeyUp(KeyCode.Space)) FlipOrientation();
         SwitchPlacementAnimation();
     }
 
     void ResetTransform()
     {
         transform.position = cellCenterPosition = lastPos;
-        if (orientation != lastOrientation) Rotate();
+        if (orientation != lastPosOrientation) FlipOrientation();
         gameField.MarkShipCellsAsOccupied(this);
         isPositionCorrect = isWithinCell = true;
     }
@@ -125,25 +136,24 @@ public class Ship : Dispatcher
     void RememberPositionAndRotation()
     {
         lastPos = transform.position;
-        lastOrientation = orientation;
+        lastPosOrientation = orientation;
+    }
+
+    void FlipOrientation()
+    {
+        if (orientation == Orientation.Horizontal) orientation = Orientation.Vertical;
+        else orientation = Orientation.Horizontal;
     }
 
     void Rotate()
     {
-        if (orientation == Orientation.Horizontal) orientation = Orientation.Vertical;
-        else orientation = Orientation.Horizontal;
-        rotAngle = -rotAngle;
         transform.Rotate(new Vector3(0, 0, rotAngle), Space.Self);
+        rotAngle = -rotAngle;
     }
 
-    public void AutoLocate()
+    public void SetAutolocated()
     {
         transform.position = cellCenterPosition;
-        if (lastOrientation != orientation)
-        {
-            orientation = lastOrientation;
-            Rotate();
-        }
         RememberPositionAndRotation();
         isPositionCorrect = wasAllocatedOnce = true;
     }
@@ -154,5 +164,10 @@ public class Ship : Dispatcher
         {
             animator.SetBool("IsMisplaced", !isPositionCorrect);
         }
+    }
+
+    public override string ToString()
+    {
+        return $"{base.ToString()}, {orientation}";
     }
 }
