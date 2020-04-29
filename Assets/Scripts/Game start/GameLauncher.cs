@@ -11,7 +11,7 @@ public class GameLauncher : AutoAllocator
     protected override void Start()
     {
         base.Start();
-        autoAllocationCompleted += OnAutoAllocationCompleted;
+        onAutoAllocationCompleted += OnAutoAllocationCompleted;
         errorMessagePanel = transform.Find("ErrorMessagePanel").gameObject;
         areEnemyShipsLocated = arePlayerShipsLocated = toLaunchGame = false;
     }

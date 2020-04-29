@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static GameField;
 
-public static class Settings
+public static class Settings 
 {
     public enum CompexityLevel
     {
@@ -55,7 +55,7 @@ public static class Settings
     {
         return new Vector2(i % width, i / width);
     }
-
+         
     public static int ConvertDecartCoordinatesToLinear(int x, int y, int width)
     {
         return y * width + x;

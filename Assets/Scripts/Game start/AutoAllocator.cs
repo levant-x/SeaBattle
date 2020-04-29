@@ -4,22 +4,51 @@ using UnityEngine;
 
 public class AutoAllocator : GameField
 {
-    public event System.Action autoAllocationCompleted;
+    public event System.Action onAutoAllocationCompleted;
 
     List<Bounds> spawnAreas = new List<Bounds>();
     Bounds selectedArea;
+    bool allignAtField;
     Dispatcher[] playDispatchers;
 
 
     public void OnAutoLocateClick(bool allignAtField = false)
     {
-        playDispatchers = Dispatcher.CreateAllShips();
+        this.allignAtField = allignAtField;
         ClearGameField();
-        spawnAreas.Add(new Bounds(new Vector3((float)Width() / 2, (float)Height() / 2),
-            new Vector3(Width(), Height())));
-        StartCoroutine(AutoLocateAllShips(allignAtField));
+        var firstArea = new Bounds(new Vector3((float)Width() / 2, (float)Height() / 2),
+            new Vector3(Width(), Height()));
+        spawnAreas.Add(firstArea);
+        playDispatchers = Dispatcher.CreateAllShips();
+        c = playDispatchers.Length - 1;
     }
-       
+
+    int c;
+
+    void Update()
+    {
+        if (!AreAllShipsInitialized()) return;
+
+
+
+        //foreach (Ship ship in playDispatchers)
+        //{
+
+        //}
+
+        Ship ship = playDispatchers[c] as Ship;
+        c--;
+        AutoLocateShip(ship);
+        if (allignAtField) ship.SetAutolocated();
+
+        if (c == 0)
+        {
+            spawnAreas.Clear();
+            playDispatchers = null;
+            onAutoAllocationCompleted?.Invoke();
+        }
+    }
+
     void ClearGameField()
     {
         for (int i = 0; i < body.Length; i++) ClearFieldCell(i);
@@ -34,22 +63,10 @@ public class AutoAllocator : GameField
 
     bool AreAllShipsInitialized()
     {
-        if (playDispatchers.Length == 0) return false;
+        if (playDispatchers == null || playDispatchers.Length == 0) return false;
         foreach (Ship ship in playDispatchers)
             if (ship.floorsNum == 0) return false;
         return true;
-    }
-
-    IEnumerator AutoLocateAllShips(bool allignAtField)
-    {
-        while (!AreAllShipsInitialized()) yield return null;
-        foreach (Ship ship in playDispatchers)
-        {
-            AutoLocateShip(ship);
-            if (allignAtField) ship.SetAutolocated();
-        }
-        spawnAreas.Clear();
-        autoAllocationCompleted?.Invoke();
     }
 
     void AutoLocateShip(Ship ship)
@@ -71,6 +88,10 @@ public class AutoAllocator : GameField
         {
             var areaNum = Random.Range(0, areasWorkingList.Count);
             var randomArea = areasWorkingList[areaNum];
+
+            Debug.Log("Rnd area " + randomArea);
+            Debug.Break();
+
             selectedArea = new Bounds(randomArea.center, randomArea.size);
             var isAreaAppropriate = CheckAndAdjustSpawnAreaAndOrient(ship,
                 ref selectedArea);
@@ -81,9 +102,7 @@ public class AutoAllocator : GameField
 
     List<T> CopyList<T>(List<T> list)
     {
-        var arrayCopy = new T[list.Count];
-        list.CopyTo(arrayCopy);
-        return new List<T>(arrayCopy);
+        return new List<T>(list);
     }
 
     bool CheckAndAdjustSpawnAreaAndOrient(Ship ship, ref Bounds area)
@@ -126,6 +145,11 @@ public class AutoAllocator : GameField
 
     void MarkupSpawnAreas(Ship ship)
     {
+
+        Debug.Log("marking up the rest for ship " + ship);
+        //System.Threading.Thread.Sleep(500);
+        Debug.Break();
+
         var normCellPosition = GetCellMatrixPos(ship.cellCenterPosition);
         float x = normCellPosition.x, y = normCellPosition.y;
 
@@ -204,19 +228,19 @@ public class AutoAllocator : GameField
 
     void OnDrawGizmos()
     {
-        //var colors = new Color[]
-        //{
-        //    Color.blue, Color.cyan, Color.green, Color.magenta, Color.red, Color.yellow, Color.black
-        //};
-        //int c = 0;
-        //foreach (var area in spawnAreas)
-        //{
-        //    Gizmos.color = colors[c];
-        //    var center = area.center * cellSize + new Vector3(bottomLeftX, bottomLeftY)
-        //        - Vector3.one * cellSize / 2;
-        //    Gizmos.DrawWireCube(center, area.size * cellSize);
-        //    c++;
-        //    if (c == colors.Length) c = 0;
-        //}
+        var colors = new Color[]
+        {
+            Color.blue, Color.cyan, Color.green, Color.magenta, Color.red, Color.yellow, Color.black
+        };
+        int c = 0;
+        foreach (var area in spawnAreas)
+        {
+            Gizmos.color = colors[c];
+            var center = area.center * cellSize + new Vector3(bottomLeftCorner.x,
+                bottomLeftCorner.y) - Vector3.one * Random.Range(-0.2f, 0.2f);
+            Gizmos.DrawWireCube(center, area.size * cellSize);
+            c++;
+            if (c == colors.Length) c = 0;
+        }
     }
 }

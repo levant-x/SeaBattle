@@ -19,20 +19,10 @@ public class Ship : Dispatcher
     public bool isPositionCorrect { get; set; } = false;
     public bool wasAllocatedOnce { get; protected set; } = false;
     public int floorsNum { get; protected set; }
-    public Orientation orientation
-    {
-        get => currOrientation;
-        set
-        {
-            if (currOrientation != value) Rotate();
-            currOrientation = value;
-            Debug.Log(this + " rotated");
-        }
-    }
+    public Orientation orientation = Orientation.Horizontal;
 
     Vector3 lastPos, floorPos;
-    Orientation firstOrientation, lastPosOrientation; // first - to set initial angle
-    Orientation currOrientation = Orientation.Horizontal;
+    Orientation lastPosOrientation; // first - to set initial angle
     Animator[] animators;
     Transform floor;
     bool toMove = false;
@@ -45,7 +35,7 @@ public class Ship : Dispatcher
         if (orientation == Orientation.Horizontal) rotAngle = -90f;
         else rotAngle = 90f;
         
-        firstOrientation = lastPosOrientation = orientation;
+        lastPosOrientation = orientation;
         floorsNum = transform.childCount;
         animators = new Animator[floorsNum];
         for (int i = 0; i < floorsNum; i++)
@@ -143,6 +133,7 @@ public class Ship : Dispatcher
     {
         if (orientation == Orientation.Horizontal) orientation = Orientation.Vertical;
         else orientation = Orientation.Horizontal;
+        Rotate();
     }
 
     void Rotate()
@@ -154,6 +145,7 @@ public class Ship : Dispatcher
     public void SetAutolocated()
     {
         transform.position = cellCenterPosition;
+        if (orientation != lastPosOrientation) Rotate();
         RememberPositionAndRotation();
         isPositionCorrect = wasAllocatedOnce = true;
     }
