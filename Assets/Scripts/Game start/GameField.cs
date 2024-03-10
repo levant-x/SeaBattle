@@ -88,8 +88,6 @@ public class GameField : MonoBehaviour
             mousePos.x < upperRightBounds.x &&
             mousePos.y > bottomLeftCorner.y && mousePos.y < upperRightBounds.y;
 
-        Debug.Log("over field  " + isShipOverField);
-
         if (!isShipOverField)
         {
             ship.isPositionCorrect = false;
