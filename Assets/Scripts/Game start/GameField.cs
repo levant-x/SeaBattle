@@ -87,6 +87,9 @@ public class GameField : MonoBehaviour
         var isShipOverField = mousePos.x > bottomLeftCorner.x && 
             mousePos.x < upperRightBounds.x &&
             mousePos.y > bottomLeftCorner.y && mousePos.y < upperRightBounds.y;
+
+        Debug.Log("over field  " + isShipOverField);
+
         if (!isShipOverField)
         {
             ship.isPositionCorrect = false;
@@ -100,14 +103,12 @@ public class GameField : MonoBehaviour
         ship.isWithinCell = true;
         ship.cellCenterPosition = boundsOfCells[x, y].center;
         ship.isPositionCorrect = IsShipPositionAppropriate(ship, x, y);
-
-        //if (ship.isPositionCorrect) Debug.Log("correct!");
     }
 
     bool IsShipPositionAppropriate(Ship ship, int x, int y)
     {
         for (int i = 0; i < ship.floorsNum; i++)
-            if (IsCellLocationAppropriate(ship, ref x, ref y))
+            if (!IsCellLocationAppropriate(ship, ref x, ref y))
                 return false;
         return true;
     }
@@ -129,6 +130,7 @@ public class GameField : MonoBehaviour
     bool AreSurroundingCellsEmpty(Ship ship, int x, int y)
     {
         if (!IsPointWithinMatrix(x, y)) return false;
+
         // to check surrounding cells
         var dx = new int[] { 1, 1, 0, -1, -1, -1, 0, 1, 0 }; 
         var dy = new int[] { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
@@ -173,19 +175,6 @@ public class GameField : MonoBehaviour
     {
         body[x, y] = cellStateToSet;
         ShiftCoordinate(ship, ref x, ref y);
-    }
-
-    public void PrintField(CellState[,] fliel)
-    {
-        for (int i = Height() - 1; i >= 0; i--) // Displaying field matrix
-        {
-            var line = "";
-            for (int j = 0; j < Width(); j++)
-            {
-                line += (int)fliel[j, i] + "  ";
-            }
-            Debug.Log(line);
-        }
     }
 
     protected Vector2 GetCellMatrixPos(Vector2 pointInField)

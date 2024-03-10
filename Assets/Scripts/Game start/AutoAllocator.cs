@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class AutoAllocator : GameField
 {
+    private int _countLeft;
+
     public event System.Action onAutoAllocationCompleted;
 
     List<Bounds> spawnAreas = new List<Bounds>();
@@ -20,28 +22,21 @@ public class AutoAllocator : GameField
             new Vector3(Width(), Height()));
         spawnAreas.Add(firstArea);
         playDispatchers = Dispatcher.CreateAllShips();
-        c = playDispatchers.Length - 1;
+        _countLeft = playDispatchers.Length - 1;
     }
 
-    int c;
 
     void Update()
     {
         if (!AreAllShipsInitialized()) return;
 
 
-
-        //foreach (Ship ship in playDispatchers)
-        //{
-
-        //}
-
-        Ship ship = playDispatchers[c] as Ship;
-        c--;
+        Ship ship = playDispatchers[_countLeft] as Ship;
+        _countLeft--;
         AutoLocateShip(ship);
         if (allignAtField) ship.SetAutolocated();
 
-        if (c == 0)
+        if (_countLeft == 0)
         {
             spawnAreas.Clear();
             playDispatchers = null;
@@ -75,7 +70,6 @@ public class AutoAllocator : GameField
         var x = Random.Range((int)selectedArea.min.x, (int)selectedArea.max.x);
         var y = Random.Range((int)selectedArea.min.y, (int)selectedArea.max.y);
         ship.cellCenterPosition = boundsOfCells[x, y].center;
-        //Debug.Log(x + " :: " + y);
 
         MarkupSpawnAreas(ship);
         MarkShipCellsAsOccupied(ship);
@@ -88,9 +82,6 @@ public class AutoAllocator : GameField
         {
             var areaNum = Random.Range(0, areasWorkingList.Count);
             var randomArea = areasWorkingList[areaNum];
-
-            Debug.Log("Rnd area " + randomArea);
-            Debug.Break();
 
             selectedArea = new Bounds(randomArea.center, randomArea.size);
             var isAreaAppropriate = CheckAndAdjustSpawnAreaAndOrient(ship,
@@ -110,10 +101,7 @@ public class AutoAllocator : GameField
         var canStandHorizontally = area.size.x >= ship.floorsNum;
         var canStandVertically = area.size.y >= ship.floorsNum;
 
-        //Debug.Log("vert " + canStandVertically + ", hor " + canStandHorizontally);
-
         float adjSize = ship.floorsNum - 1;
-        //Debug.Log(adjSize + " adj size");
 
         if (!canStandHorizontally && !canStandVertically)
         {
@@ -122,7 +110,6 @@ public class AutoAllocator : GameField
         else if (canStandHorizontally && canStandVertically)
         {
             ship.orientation = (Ship.Orientation)Random.Range(0, 2);
-            //Debug.Log("random orient " + ship);
         }
         else if (canStandHorizontally) ship.orientation = Ship.Orientation.Horizontal;
         else ship.orientation = Ship.Orientation.Vertical;
@@ -131,13 +118,11 @@ public class AutoAllocator : GameField
         {
             area.center = new Vector3(area.center.x - adjSize / 2, area.center.y);
             area.Expand(new Vector3(-adjSize, 0));
-            //Debug.Log("expanded hor " + area + $" min {area.min}, max {area.max}");
         }
         else
         {
             area.center = new Vector3(area.center.x, area.center.y + adjSize / 2);
             area.Expand(new Vector3(0, -adjSize));
-            //Debug.Log("expanded vert " + area + $" min {area.min}, max {area.max}");
         }
         return true;
     }
@@ -145,11 +130,6 @@ public class AutoAllocator : GameField
 
     void MarkupSpawnAreas(Ship ship)
     {
-
-        Debug.Log("marking up the rest for ship " + ship);
-        //System.Threading.Thread.Sleep(500);
-        Debug.Break();
-
         var normCellPosition = GetCellMatrixPos(ship.cellCenterPosition);
         float x = normCellPosition.x, y = normCellPosition.y;
 
@@ -167,22 +147,19 @@ public class AutoAllocator : GameField
         var occupiedArea = new Bounds(new Vector3(centerX, centerY),
             new Vector3(areaWidth, areaHeight));
 
-        //Debug.Log($"ship has taken {shipExtention} {areaWidth} {occupiedArea.min} {occupiedArea.max}");
-
         var spawnAreasCopy = CopyList(spawnAreas);
-        int c = 0;
+        int counter = 0;
         for (int i = 0; i < spawnAreasCopy.Count; i++)
         {
             var area = spawnAreasCopy[i];
            
             if (!AreBoundsOverlap(area, occupiedArea)) continue;
 
-            //Debug.Log($"intersected area {area.min} {area.max}");
-
             spawnAreas.Remove(area);
             SplitSpawnArea(area, occupiedArea);
 
-            c++; if (c > 100) break;
+            counter++; 
+            if (counter > 100) break;
         }
     }
 
@@ -195,8 +172,6 @@ public class AutoAllocator : GameField
         var maxMinY = Mathf.Max(initial.min.y, occup.min.y);
 
         var overlap = minMaxX > maxMinX && minMaxY > maxMinY;
-
-        //Debug.Log($"old {initial.min} {initial.max}, new {occup.min} {occup.max},  {overlap}");
         return overlap;
     }
 
@@ -223,24 +198,5 @@ public class AutoAllocator : GameField
             subArea.size = new Vector3(initArea.size.x, max - min);
         }
         spawnAreas.Add(subArea);
-        //Debug.Log($"area created {subArea.min} {subArea.max}");
-    }
-
-    void OnDrawGizmos()
-    {
-        var colors = new Color[]
-        {
-            Color.blue, Color.cyan, Color.green, Color.magenta, Color.red, Color.yellow, Color.black
-        };
-        int c = 0;
-        foreach (var area in spawnAreas)
-        {
-            Gizmos.color = colors[c];
-            var center = area.center * cellSize + new Vector3(bottomLeftCorner.x,
-                bottomLeftCorner.y) - Vector3.one * Random.Range(-0.2f, 0.2f);
-            Gizmos.DrawWireCube(center, area.size * cellSize);
-            c++;
-            if (c == colors.Length) c = 0;
-        }
     }
 }
